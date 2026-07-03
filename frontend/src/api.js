@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000/api';
+const API_URL = "https://find-your-perfect-choice-production.up.railway.app";
 
 function getHeaders() {
   const token = localStorage.getItem('bodim_token');
