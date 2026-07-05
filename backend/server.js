@@ -24,7 +24,7 @@ app.use(cors({
   origin: [
     "http://localhost:5173",
     "http://localhost:5174",
-    "https://YOUR-VERCEL-URL.vercel.app"
+     "https://find-your-perfect-choice.vercel.app"
   ],
   credentials: true
 }));
