@@ -1,5 +1,4 @@
 const API_URL = "https://find-your-perfect-choice-production.up.railway.app";
-
 function getHeaders() {
   const token = localStorage.getItem('bodim_token');
   const headers = { 'Content-Type': 'application/json' };
