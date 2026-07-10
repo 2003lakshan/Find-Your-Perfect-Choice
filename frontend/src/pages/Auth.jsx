@@ -157,7 +157,7 @@ export default function Auth({ onLogin }) {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #080b14;
+          background: #f8fafc;
           font-family: 'DM Sans', sans-serif;
           overflow: hidden;
           position: relative;
@@ -174,19 +174,19 @@ export default function Auth({ onLogin }) {
         }
         .orb-1 {
           width: 520px; height: 520px;
-          background: radial-gradient(circle, rgba(99,102,241,0.22) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
           top: -160px; left: -140px;
           animation: drift1 14s ease-in-out infinite alternate;
         }
         .orb-2 {
           width: 400px; height: 400px;
-          background: radial-gradient(circle, rgba(236,72,153,0.16) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(236,72,153,0.08) 0%, transparent 70%);
           bottom: -120px; right: -100px;
           animation: drift2 11s ease-in-out infinite alternate;
         }
         .orb-3 {
           width: 300px; height: 300px;
-          background: radial-gradient(circle, rgba(34,211,238,0.10) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(34,211,238,0.05) 0%, transparent 70%);
           top: 50%; left: 55%;
           animation: drift3 17s ease-in-out infinite alternate;
         }
@@ -199,8 +199,8 @@ export default function Auth({ onLogin }) {
         .grid-overlay {
           position: absolute; inset: 0; pointer-events: none;
           background-image:
-            linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+            linear-gradient(rgba(15,23,42,0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(15,23,42,0.02) 1px, transparent 1px);
           background-size: 48px 48px;
         }
 
@@ -208,7 +208,7 @@ export default function Auth({ onLogin }) {
         .particle {
           position: absolute;
           border-radius: 50%;
-          background: rgba(139,92,246,0.7);
+          background: rgba(139,92,246,0.3);
           pointer-events: none;
           animation: floatUp var(--dur) var(--delay) ease-in-out infinite alternate;
         }
@@ -221,16 +221,16 @@ export default function Auth({ onLogin }) {
         .auth-card {
           position: relative;
           width: 100%; max-width: 440px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.10);
+          background: rgba(255,255,255,0.85);
+          border: 1px solid rgba(15,23,42,0.08);
           border-radius: 28px;
           padding: 44px 40px;
           backdrop-filter: blur(24px);
           -webkit-backdrop-filter: blur(24px);
           box-shadow:
-            0 0 0 1px rgba(255,255,255,0.04),
-            0 24px 80px rgba(0,0,0,0.6),
-            inset 0 1px 0 rgba(255,255,255,0.12);
+            0 0 0 1px rgba(255,255,255,0.5),
+            0 24px 80px rgba(0,0,30,0.08),
+            inset 0 1px 0 rgba(255,255,255,0.8);
           transition: transform 0.2s ease;
           animation: cardIn 0.7s cubic-bezier(0.22,1,0.36,1) both;
         }
@@ -242,7 +242,7 @@ export default function Auth({ onLogin }) {
         /* Card inner shimmer line */
         .card-shimmer {
           position: absolute; top: 0; left: 10%; right: 10%; height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+          background: linear-gradient(90deg, transparent, rgba(99,102,241,0.25), transparent);
           border-radius: 999px;
         }
 
@@ -250,95 +250,90 @@ export default function Auth({ onLogin }) {
         .logo-mark {
           display: flex; align-items: center; justify-content: center;
           width: 54px; height: 54px; border-radius: 16px; margin: 0 auto 20px;
-          background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
-          box-shadow: 0 8px 32px rgba(99,102,241,0.45);
+          box-shadow: 0 8px 24px rgba(0,0,30,0.06);
           position: relative; overflow: hidden;
+          border: 1px solid rgba(15,23,42,0.08);
         }
-        .logo-mark::after {
-          content: '';
-          position: absolute; inset: 0;
-          background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 60%);
-        }
-        .logo-mark svg { position: relative; z-index: 1; }
+        .logo-mark img { width: 100%; height: 100%; object-fit: cover; }
 
         /* Headings */
         .auth-title {
           font-family: 'Syne', sans-serif;
           font-size: 2rem; font-weight: 800;
-          color: #fff; text-align: center; line-height: 1.1;
+          color: #0f172a; text-align: center; line-height: 1.1;
           letter-spacing: -0.03em;
           margin-bottom: 6px;
         }
         .auth-sub {
-          text-align: center; color: rgba(255,255,255,0.42);
-          font-size: 0.875rem; font-weight: 300; margin-bottom: 32px;
+          text-align: center; color: #64748b;
+          font-size: 0.875rem; font-weight: 400; margin-bottom: 32px;
         }
 
         /* Mode toggle pills */
         .mode-toggle {
-          display: flex; background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.08);
+          display: flex; background: rgba(15,23,42,0.03);
+          border: 1px solid rgba(15,23,42,0.06);
           border-radius: 14px; padding: 4px; margin-bottom: 30px; gap: 4px;
         }
         .mode-pill {
           flex: 1; text-align: center; padding: 9px 0;
           border-radius: 10px; font-size: 0.85rem; font-weight: 600;
           cursor: pointer; border: none; background: transparent;
-          color: rgba(255,255,255,0.4); transition: all 0.25s ease;
+          color: #64748b; transition: all 0.25s ease;
           font-family: 'DM Sans', sans-serif; letter-spacing: 0.01em;
         }
         .mode-pill.active {
           background: linear-gradient(135deg, #6366f1, #a855f7);
           color: #fff;
-          box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+          box-shadow: 0 4px 16px rgba(99,102,241,0.3);
         }
-        .mode-pill:not(.active):hover { color: rgba(255,255,255,0.75); }
+        .mode-pill:not(.active):hover { color: #0f172a; }
 
         /* Input group */
         .field-group { margin-bottom: 18px; }
         .field-label {
-          display: block; font-size: 0.78rem; font-weight: 600;
-          color: rgba(255,255,255,0.55); margin-bottom: 8px;
+          display: block; font-size: 0.78rem; font-weight: 700;
+          color: #475569; margin-bottom: 8px;
           letter-spacing: 0.07em; text-transform: uppercase;
         }
         .field-wrap {
           position: relative;
           border-radius: 14px;
-          background: rgba(255,255,255,0.05);
-          border: 1.5px solid rgba(255,255,255,0.09);
+          background: rgba(15,23,42,0.02);
+          border: 1.5px solid rgba(15,23,42,0.06);
           transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
           overflow: hidden;
         }
         .field-wrap.focused {
-          border-color: rgba(139,92,246,0.7);
-          background: rgba(139,92,246,0.07);
-          box-shadow: 0 0 0 3px rgba(139,92,246,0.12), 0 2px 16px rgba(99,102,241,0.15);
+          border-color: rgba(99,102,241,0.8);
+          background: rgba(99,102,241,0.03);
+          box-shadow: 0 0 0 3px rgba(99,102,241,0.1), 0 2px 16px rgba(99,102,241,0.05);
         }
         .field-icon {
           position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-          color: rgba(255,255,255,0.28); pointer-events: none; transition: color 0.2s;
+          color: #94a3b8; pointer-events: none; transition: color 0.2s;
         }
-        .field-wrap.focused .field-icon { color: rgba(139,92,246,0.85); }
+        .field-wrap.focused .field-icon { color: #6366f1; }
         .field-input {
           width: 100%; background: transparent; border: none; outline: none;
-          color: #fff; font-family: 'DM Sans', sans-serif;
+          color: #0f172a; font-family: 'DM Sans', sans-serif;
           font-size: 0.95rem; font-weight: 400;
           padding: 14px 16px 14px 48px;
         }
-        .field-input::placeholder { color: rgba(255,255,255,0.2); }
+        .field-input::placeholder { color: #94a3b8; }
         .field-input.has-toggle { padding-right: 48px; }
         .pw-toggle {
           position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
           background: none; border: none; cursor: pointer;
-          color: rgba(255,255,255,0.28); padding: 4px;
+          color: #94a3b8; padding: 4px;
           display: flex; align-items: center; transition: color 0.2s;
         }
-        .pw-toggle:hover { color: rgba(139,92,246,0.85); }
+        .pw-toggle:hover { color: #6366f1; }
 
         /* Error */
         .auth-error {
           background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25);
-          color: #f87171; border-radius: 12px; padding: 11px 16px;
+          color: #ef4444; border-radius: 12px; padding: 11px 16px;
           font-size: 0.84rem; font-weight: 500; text-align: center; margin-bottom: 20px;
           animation: shake 0.35s ease;
         }
@@ -386,14 +381,14 @@ export default function Auth({ onLogin }) {
         /* Footer text */
         .auth-footer {
           text-align: center; margin-top: 26px;
-          font-size: 0.85rem; color: rgba(255,255,255,0.35);
+          font-size: 0.85rem; color: #64748b;
         }
         .auth-footer-link {
-          color: #a78bfa; font-weight: 600; background: none; border: none;
+          color: #6366f1; font-weight: 700; background: none; border: none;
           cursor: pointer; margin-left: 6px; font-family: 'DM Sans', sans-serif;
           font-size: 0.85rem; text-decoration: none; transition: color 0.2s;
         }
-        .auth-footer-link:hover { color: #c4b5fd; text-decoration: underline; }
+        .auth-footer-link:hover { color: #4f46e5; text-decoration: underline; }
 
         /* Slide transition for name field */
         .field-slide {
@@ -406,30 +401,30 @@ export default function Auth({ onLogin }) {
         /* Divider */
         .divider {
           display: flex; align-items: center; gap: 12px; margin: 22px 0 0;
-          color: rgba(255,255,255,0.18); font-size: 0.78rem;
+          color: rgba(15,23,42,0.15); font-size: 0.78rem;
         }
         .divider::before, .divider::after {
           content: ''; flex: 1; height: 1px;
-          background: rgba(255,255,255,0.09);
+          background: rgba(15,23,42,0.08);
         }
 
         /* Google Sign-In Button */
         .google-divider {
           display: flex; align-items: center; gap: 14px;
-          margin: 24px 0 20px; color: rgba(255,255,255,0.28);
-          font-size: 0.78rem; font-weight: 500; text-transform: uppercase;
+          margin: 24px 0 20px; color: #94a3b8;
+          font-size: 0.78rem; font-weight: 600; text-transform: uppercase;
           letter-spacing: 0.08em;
         }
         .google-divider::before, .google-divider::after {
           content: ''; flex: 1; height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+          background: linear-gradient(90deg, transparent, rgba(15,23,42,0.08), transparent);
         }
 
         .google-btn {
-          width: 100%; border: 1.5px solid rgba(255,255,255,0.10);
-          background: rgba(255,255,255,0.05);
-          color: rgba(255,255,255,0.85); font-family: 'DM Sans', sans-serif;
-          font-size: 0.92rem; font-weight: 500;
+          width: 100%; border: 1.5px solid rgba(15,23,42,0.08);
+          background: rgba(255,255,255,0.7);
+          color: #334155; font-family: 'DM Sans', sans-serif;
+          font-size: 0.92rem; font-weight: 600;
           padding: 13px 0; border-radius: 14px;
           display: flex; align-items: center; justify-content: center; gap: 12px;
           cursor: pointer;
@@ -443,10 +438,10 @@ export default function Auth({ onLogin }) {
           opacity: 0; transition: opacity 0.3s;
         }
         .google-btn:hover {
-          border-color: rgba(255,255,255,0.22);
-          background: rgba(255,255,255,0.09);
+          border-color: rgba(15,23,42,0.15);
+          background: rgba(255,255,255,0.95);
           transform: translateY(-1px);
-          box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+          box-shadow: 0 4px 20px rgba(0,0,30,0.05);
         }
         .google-btn:hover::before { opacity: 1; }
         .google-btn:active { transform: translateY(0) scale(0.99); }
@@ -484,10 +479,7 @@ export default function Auth({ onLogin }) {
 
           {/* Logo */}
           <div className="logo-mark">
-            <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-              <path d="M13 3L22 8.5V17.5L13 23L4 17.5V8.5L13 3Z" fill="white" fillOpacity="0.9"/>
-              <path d="M13 9L18 12V18L13 21L8 18V12L13 9Z" fill="white" fillOpacity="0.25"/>
-            </svg>
+            <img src="/logo.png" alt="Bodim Logo" />
           </div>
 
           {twoFAState ? (

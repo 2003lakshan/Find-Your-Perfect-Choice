@@ -91,7 +91,7 @@ function MapPopupCard({ boarding, onViewDetails, handleDirections, handleWhatsAp
 
       {/* Content */}
       <div className="p-4 text-foreground">
-        <h4 className="font-bold text-base leading-tight mb-1 truncate text-[color:var(--foreground)]" style={{ margin: '0 0 4px 0' }}>
+        <h4 className="font-bold text-base leading-tight mb-1 truncate text-foreground" style={{ margin: '0 0 4px 0' }}>
           {boarding.title}
         </h4>
         <div className="flex items-center gap-1 text-muted-foreground text-xs mb-3 truncate">
@@ -165,25 +165,27 @@ export default function MapMode({ boardings, onViewDetails }) {
           padding: 0;
           overflow: hidden;
           border-radius: 16px;
-          background: var(--card);
-          border: 1px solid var(--border);
+          background: var(--color-card, #ffffff);
+          border: 1px solid var(--color-border, #e2e8f0);
           box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+          color: var(--color-foreground, #0f172a) !important;
         }
         .leaflet-popup-content {
           margin: 0;
           width: 240px !important;
+          color: var(--color-foreground, #0f172a) !important;
         }
         .leaflet-popup-tip-container {
           overflow: visible;
         }
         .leaflet-popup-tip {
-          background: var(--card);
-          border: 1px solid var(--border);
+          background: var(--color-card, #ffffff);
+          border: 1px solid var(--color-border, #e2e8f0);
         }
         .dark .leaflet-popup-content-wrapper,
         .dark .leaflet-popup-tip {
-          background: #1e2128;
-          border-color: rgba(255,255,255,0.1);
+          background: var(--color-card, #0f172a);
+          border-color: var(--color-border, #1e293b);
         }
       `}</style>
       <MapContainer

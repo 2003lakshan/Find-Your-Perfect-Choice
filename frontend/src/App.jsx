@@ -148,6 +148,7 @@ export default function App() {
   const [filters, setFilters] = useState({ searchTerm: '', city: '' });
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [selectedBoarding, setSelectedBoarding] = useState(null);
 
   // Check if user is already logged in
@@ -165,9 +166,14 @@ export default function App() {
   }, [filters]);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    document.documentElement.classList.add('dark');
-  }, []);
+    document.documentElement.setAttribute('data-theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   const handleLogin = (userData) => {
     setUser(userData);
@@ -191,108 +197,113 @@ export default function App() {
         setCurrentPage={setCurrentPage}
         user={user}
         setUser={(u) => { if (!u) handleLogout(); else setUser(u); }}
+        theme={theme}
+        setTheme={setTheme}
       />
 
       <main className="w-full">
         {currentPage === 'home' && (
           <>
-            <Home setFilters={setFilters} boardings={boardings} />
-            <section className="max-w-[1400px] mx-auto w-full px-6 pb-20 mt-12">
-              <div className="flex flex-col items-center justify-center mb-12">
-                <div className="text-center mb-6">
-                  <h3 className="text-3xl font-bold">Featured Boardings</h3>
-                  <div className="text-sm font-semibold text-primary mt-2">{boardings.length} results found</div>
+            <Home setFilters={setFilters} boardings={boardings}>
+              <div id="listings" className="bg-background text-foreground w-full py-16">
+              <section className="max-w-[1400px] mx-auto w-full px-6">
+                <div className="flex flex-col items-center justify-center mb-12">
+                  <div className="text-center mb-6">
+                    <h3 className="text-3xl font-bold">Featured Boardings</h3>
+                    <div className="text-sm font-semibold text-primary mt-2">{boardings.length} results found</div>
+                  </div>
+                  
+                  {/* Side-by-side Buttons */}
+                  <div className="flex items-center gap-2 mt-4">
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`flex items-center gap-2 px-6 py-3 rounded-lg text-base font-bold shadow-md cursor-pointer border-none transition-colors ${
+                        viewMode === 'list' 
+                          ? 'bg-[#007bff] text-white hover:bg-[#0069d9]' 
+                          : 'bg-[#6c757d] text-white hover:bg-[#5a6268]'
+                      }`}
+                    >
+                      <LayoutGrid size={18} strokeWidth={2.5} />
+                      <span>List View</span>
+                    </button>
+                    <button
+                      onClick={() => setViewMode('map')}
+                      className={`flex items-center gap-2 px-6 py-3 rounded-lg text-base font-bold shadow-md cursor-pointer border-none transition-colors ${
+                        viewMode === 'map' 
+                          ? 'bg-[#007bff] text-white hover:bg-[#0069d9]' 
+                          : 'bg-[#6c757d] text-white hover:bg-[#5a6268]'
+                      }`}
+                    >
+                      <Map size={18} strokeWidth={2.5} />
+                      <span>Map Mode</span>
+                    </button>
+                  </div>
                 </div>
-                
-                {/* Side-by-side Buttons */}
-                <div className="flex items-center gap-2 mt-4">
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-lg text-base font-bold shadow-md cursor-pointer border-none transition-colors ${
-                      viewMode === 'list' 
-                        ? 'bg-[#007bff] text-white hover:bg-[#0069d9]' 
-                        : 'bg-[#6c757d] text-white hover:bg-[#5a6268]'
-                    }`}
-                  >
-                    <LayoutGrid size={18} strokeWidth={2.5} />
-                    <span>List View</span>
-                  </button>
-                  <button
-                    onClick={() => setViewMode('map')}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-lg text-base font-bold shadow-md cursor-pointer border-none transition-colors ${
-                      viewMode === 'map' 
-                        ? 'bg-[#007bff] text-white hover:bg-[#0069d9]' 
-                        : 'bg-[#6c757d] text-white hover:bg-[#5a6268]'
-                    }`}
-                  >
-                    <Map size={18} strokeWidth={2.5} />
-                    <span>Map Mode</span>
-                  </button>
-                </div>
-              </div>
 
-              {loading ? (
-                <div className="text-center py-20">
-                  <div className="inline-block w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  <p className="mt-4 text-foreground/40 font-semibold">Loading boardings...</p>
-                </div>
-              ) : viewMode === 'map' ? (
-                <MapMode boardings={boardings} onViewDetails={setSelectedBoarding} />
-              ) : (
-                <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-10">
-                  {boardings.map(boarding => (
-                    <div key={boarding.id} className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-22px)] max-w-[420px] bg-card rounded-2xl overflow-hidden border border-border shadow-lg hover:shadow-2xl transition-all group animate-fade-in flex-grow-0">
-                      <div className="relative h-64 overflow-hidden bg-input">
-                        {boarding.images && boarding.images.length > 0 ? (
-                          <img
-                            src={boarding.images[0]}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                            alt={boarding.title}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-foreground/20">
-                            <span className="text-lg font-semibold">No Image</span>
+                {loading ? (
+                  <div className="text-center py-20">
+                    <div className="inline-block w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <p className="mt-4 text-foreground/40 font-semibold">Loading boardings...</p>
+                  </div>
+                ) : viewMode === 'map' ? (
+                  <MapMode boardings={boardings} onViewDetails={setSelectedBoarding} />
+                ) : (
+                  <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-10">
+                    {boardings.map(boarding => (
+                      <div key={boarding.id} className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-22px)] max-w-[420px] bg-card rounded-2xl overflow-hidden border border-border shadow-lg hover:shadow-2xl transition-all group animate-fade-in flex-grow-0">
+                        <div className="relative h-64 overflow-hidden bg-input">
+                          {boarding.images && boarding.images.length > 0 ? (
+                            <img
+                              src={boarding.images[0]}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                              alt={boarding.title}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-foreground/20">
+                              <span className="text-lg font-semibold">No Image</span>
+                            </div>
+                          )}
+                          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold shadow-sm text-black">
+                            {boarding.city}
                           </div>
-                        )}
-                        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold shadow-sm text-black">
-                          {boarding.city}
+                          <div className="absolute bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-2xl font-bold shadow-lg">
+                            LKR {Number(boarding.price).toLocaleString()}
+                          </div>
                         </div>
-                        <div className="absolute bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-2xl font-bold shadow-lg">
-                          LKR {Number(boarding.price).toLocaleString()}
+
+                        <div className="p-6">
+                          <h4 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">{boarding.title}</h4>
+                          <div className="flex items-center gap-2 text-foreground/60 text-sm mb-4">
+                            <MapPin size={16} />
+                            <span className="truncate">{boarding.address}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-4 border-t border-border">
+                            <div className="flex items-center gap-2 text-foreground/80 font-semibold">
+                              <Phone size={16} className="text-primary" />
+                              <span>{boarding.contact}</span>
+                            </div>
+                            <button 
+                              onClick={() => setSelectedBoarding(boarding)}
+                              className="bg-input p-2 rounded-full hover:bg-primary/10 hover:text-primary transition-all text-foreground"
+                            >
+                              <Eye size={20} />
+                            </button>
+                          </div>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
 
-                      <div className="p-6">
-                        <h4 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">{boarding.title}</h4>
-                        <div className="flex items-center gap-2 text-foreground/60 text-sm mb-4">
-                          <MapPin size={16} />
-                          <span className="truncate">{boarding.address}</span>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-4 border-t border-border">
-                          <div className="flex items-center gap-2 text-foreground/80 font-semibold">
-                            <Phone size={16} className="text-primary" />
-                            <span>{boarding.contact}</span>
-                          </div>
-                          <button 
-                            onClick={() => setSelectedBoarding(boarding)}
-                            className="bg-input p-2 rounded-full hover:bg-primary/10 hover:text-primary transition-all"
-                          >
-                            <Eye size={20} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {!loading && boardings.length === 0 && (
-                <div className="text-center py-20 bg-input rounded-[3rem] border-2 border-dashed border-border">
-                  <p className="text-foreground/40 font-semibold">No boardings found. Be the first to upload one!</p>
-                </div>
-              )}
-            </section>
+                {!loading && boardings.length === 0 && (
+                  <div className="text-center py-20 bg-input rounded-[3rem] border-2 border-dashed border-border">
+                    <p className="text-foreground/40 font-semibold">No boardings found. Be the first to upload one!</p>
+                  </div>
+                )}
+              </section>
+            </div>
+            </Home>
           </>
         )}
 

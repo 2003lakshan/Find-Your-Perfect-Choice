@@ -11,16 +11,28 @@
   --color-card-foreground: #0f172a;
   --color-border: #e2e8f0;
   --color-input: #f1f5f9;
+  --color-muted-foreground: #64748b;
   --font-family-sans: 'Outfit', sans-serif;
 }
 
-[data-theme='dark'] {
+[data-theme='light'], .light {
+  --color-background: #f8fafc;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-border: #e2e8f0;
+  --color-input: #f1f5f9;
+  --color-muted-foreground: #64748b;
+}
+
+[data-theme='dark'], .dark {
   --color-background: #020617;
   --color-foreground: #f8fafc;
   --color-card: #0f172a;
   --color-card-foreground: #f8fafc;
   --color-border: #1e293b;
   --color-input: #1e293b;
+  --color-muted-foreground: #94a3b8;
 }
 
 * {

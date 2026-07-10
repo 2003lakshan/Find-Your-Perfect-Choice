@@ -656,3 +656,29 @@
   .h-heading { font-size:clamp(34px, 10vw, 52px); }
   .cta-primary, .cta-secondary { padding:13px 22px; font-size:13px; }
 }
+
+/* ══════════════════════════════════════════════
+   DARK MODE OVERRIDES
+   ══════════════════════════════════════════════ */
+.dark, [data-theme='dark'] {
+  --cream:      #020617;
+  --surface:    #0f172a;
+  --ink:        #f8fafc;
+  --ink-70:     rgba(248,250,252,0.70);
+  --ink-50:     rgba(248,250,252,0.50);
+  --ink-25:     rgba(248,250,252,0.25);
+  --ink-10:     rgba(248,250,252,0.10);
+  --ink-05:     rgba(248,250,252,0.05);
+  --blue-lt:    rgba(37,99,235,0.15);
+  --sky-lt:     rgba(56,189,248,0.12);
+  --indigo-lt:  rgba(79,70,229,0.15);
+  --gold-lt:    rgba(245,158,11,0.15);
+  --w70:        rgba(255,255,255,0.70);
+  --w40:        rgba(255,255,255,0.40);
+  --w15:        rgba(255,255,255,0.15);
+}
+
+.dark .feat-inner, [data-theme='dark'] .feat-inner {
+  background: linear-gradient(135deg, var(--blue-lt) 0%, var(--surface) 60%);
+  border-color: rgba(255,255,255,0.08);
+}

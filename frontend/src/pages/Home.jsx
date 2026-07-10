@@ -208,7 +208,7 @@ function PropCard({ card }) {
 /* ══════════════════════════════════════════════
    MAIN
 ══════════════════════════════════════════════ */
-export default function Home({ setFilters, boardings = [] }) {
+export default function Home({ setFilters, boardings = [], children }) {
   const [search, setSearch] = useState('');
   const [city, setCity]     = useState('');
   const [active, setActive] = useState('');
@@ -228,21 +228,33 @@ export default function Home({ setFilters, boardings = [] }) {
     return () => window.removeEventListener('resize', fn);
   }, []);
 
+  const scrollToListings = () => {
+    setTimeout(() => {
+      const el = document.getElementById('listings');
+      if (el) {
+        const y = el.getBoundingClientRect().top + window.scrollY - 80; // 80px for header
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
   const doSearch = useCallback((e) => {
     e?.preventDefault();
     setFilters?.({ searchTerm: search, city });
+    scrollToListings();
   }, [search, city, setFilters]);
 
   const pickCity = useCallback((c) => {
     const next = active === c ? '' : c;
     setActive(next); setCity(next);
     setFilters?.({ searchTerm: search, city: next });
+    scrollToListings();
   }, [active, search, setFilters]);
 
   const pickBento = useCallback((c) => {
     setActive(c); setCity(c);
     setFilters?.({ searchTerm: search, city: c });
-    setTimeout(() => window.scrollBy({ top: 480, behavior: 'smooth' }), 80);
+    scrollToListings();
   }, [search, setFilters]);
 
   return (
@@ -266,13 +278,7 @@ export default function Home({ setFilters, boardings = [] }) {
           {/* Desktop links */}
           <div className="hero-nav-links">
             <a href="#listings" className="hero-nav-link">Listings</a>
-            <a href="#how"      className="hero-nav-link">How it works</a>
-            <button
-              className="hero-nav-cta"
-              onClick={() => setFilters?.({ searchTerm:'', city:'' })}
-            >
-              Post a Boarding
-            </button>
+            <a href="#how" className="hero-nav-cta" style={{ textDecoration: 'none' }}>How it works</a>
           </div>
         </nav>
 
@@ -289,19 +295,18 @@ export default function Home({ setFilters, boardings = [] }) {
             >
               <X size={28} />
             </button>
-            {['Listings','How it works'].map(l => (
-              <a key={l} href={`#${l.toLowerCase().replace(' ','-')}`}
-                style={{ color:'#fff', font:'600 20px/1 var(--fb)', textDecoration:'none' }}
-                onClick={() => setMobileMenu(false)}
-              >{l}</a>
-            ))}
-            <button
+            <a href="#listings"
+              style={{ color:'#fff', font:'600 20px/1 var(--fb)', textDecoration:'none' }}
+              onClick={() => setMobileMenu(false)}
+            >Listings</a>
+            <a
               className="hero-nav-cta"
-              style={{ padding:'14px 32px', fontSize:15 }}
-              onClick={() => { setMobileMenu(false); setFilters?.({ searchTerm:'', city:'' }); }}
+              style={{ padding:'14px 32px', fontSize:15, textDecoration:'none', textAlign:'center' }}
+              href="#how"
+              onClick={() => setMobileMenu(false)}
             >
-              Post a Boarding
-            </button>
+              How it works
+            </a>
           </div>
         )}
 
@@ -389,6 +394,8 @@ export default function Home({ setFilters, boardings = [] }) {
         </div>
       </section>
 
+      {children}
+
       {/* ══ STATS ══ */}
       <div className="stats-strip rv" ref={rv}>
         <StatCounter target={1200} suffix="+" label="Active Listings"   delay="0s"   />
@@ -467,6 +474,37 @@ export default function Home({ setFilters, boardings = [] }) {
                 <div><h4>{t.title}</h4><p>{t.desc}</p></div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ HOW IT WORKS ══ */}
+      <section className="why" id="how" style={{ paddingTop: '80px', borderTop: '1px solid var(--ink-05)' }}>
+        <div className="wrap">
+          <div className="sh rv" ref={rv}>
+            <div className="sh__tag"><Sparkles size={10} /> Simple Steps</div>
+            <h2 className="sh__title">How to <em>Post a Boarding</em></h2>
+            <p className="sh__body">Ready to rent out your space? Follow these three simple steps to publish your boarding house listing.</p>
+          </div>
+          <div className="why-grid" style={{ marginTop: '40px' }}>
+            <div className="why-card rv" ref={rv} style={{ transitionDelay: '0s' }}>
+              <span className="why-card__num">01</span>
+              <div className="why-ico" style={{ background: 'var(--blue-lt)', color: 'var(--blue-mid)' }}><Users size={20} /></div>
+              <h3>Create an Account</h3>
+              <p>Sign up or log in to your account. It takes under a minute and ensures your listing details and contacts are secure.</p>
+            </div>
+            <div className="why-card rv" ref={rv} style={{ transitionDelay: '0.12s' }}>
+              <span className="why-card__num">02</span>
+              <div className="why-ico" style={{ background: 'var(--sky-lt)', color: '#0EA5E9' }}><Building2 size={20} /></div>
+              <h3>Fill Boarding Details</h3>
+              <p>Click "Upload Boarding" on the top navigation bar. Fill in title, rent price, select location on the map, and upload images.</p>
+            </div>
+            <div className="why-card rv" ref={rv} style={{ transitionDelay: '0.24s' }}>
+              <span className="why-card__num">03</span>
+              <div className="why-ico" style={{ background: 'var(--indigo-lt)', color: 'var(--indigo)' }}><CheckCircle2 size={20} /></div>
+              <h3>Review & Go Live</h3>
+              <p>Our admin team reviews listings for authenticity. Once approved, your boarding goes live immediately for searchers to find.</p>
+            </div>
           </div>
         </div>
       </section>
