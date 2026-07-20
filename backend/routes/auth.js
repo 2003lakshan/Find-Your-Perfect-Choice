@@ -264,7 +264,7 @@ router.post('/forgot-password', async (req, res) => {
 
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
-    const existing = db.exec('SELECT id, name FROM users WHERE email = ?', [email]);
+    const existing = db.exec('SELECT id, name FROM users WHERE LOWER(email) = LOWER(?)', [email]);
     if (existing.length === 0 || existing[0].values.length === 0) {
       // Return success even if not found to prevent email enumeration
       return res.json({ success: true, message: 'If an account exists, a reset link has been sent.' });
@@ -284,8 +284,9 @@ router.post('/forgot-password', async (req, res) => {
     const resetLink = `${frontendUrl}/reset-password?token=${token}`;
 
     const transporter = await getTransporter();
+    const senderEmail = process.env.EMAIL_USER || 'support@bodim.example.com';
     const info = await transporter.sendMail({
-      from: '"Bodim Support" <support@bodim.example.com>',
+      from: `"Bodim Support" <${senderEmail}>`,
       to: email,
       subject: "Password Reset Request",
       html: `
