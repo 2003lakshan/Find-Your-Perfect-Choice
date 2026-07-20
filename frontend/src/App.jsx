@@ -5,6 +5,7 @@ import Auth from './pages/Auth';
 import Upload from './pages/Upload';
 import AdminDashboard from './pages/AdminDashboard';
 import MyListings from './pages/MyListings';
+import ResetPassword from './pages/ResetPassword';
 import MapMode from './components/MapMode';
 import { MapPin, Phone, Eye, LayoutGrid, Map, ChevronLeft, ChevronRight, X, Navigation2 } from 'lucide-react';
 import { api } from './api';
@@ -142,7 +143,10 @@ function BoardingDetailModal({ boarding, onClose }) {
 }
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState(() => {
+    if (window.location.pathname === '/reset-password') return 'reset-password';
+    return 'home';
+  });
   const [user, setUser] = useState(null);
   const [boardings, setBoardings] = useState([]);
   const [filters, setFilters] = useState({ searchTerm: '', city: '' });
@@ -213,30 +217,155 @@ export default function App() {
                     <div className="text-sm font-semibold text-primary mt-2">{boardings.length} results found</div>
                   </div>
                   
-                  {/* Side-by-side Buttons */}
-                  <div className="flex items-center gap-2 mt-4">
-                    <button
-                      onClick={() => setViewMode('list')}
-                      className={`flex items-center gap-2 px-6 py-3 rounded-lg text-base font-bold shadow-md cursor-pointer border-none transition-colors ${
-                        viewMode === 'list' 
-                          ? 'bg-[#007bff] text-white hover:bg-[#0069d9]' 
-                          : 'bg-[#6c757d] text-white hover:bg-[#5a6268]'
-                      }`}
-                    >
-                      <LayoutGrid size={18} strokeWidth={2.5} />
-                      <span>List View</span>
-                    </button>
-                    <button
-                      onClick={() => setViewMode('map')}
-                      className={`flex items-center gap-2 px-6 py-3 rounded-lg text-base font-bold shadow-md cursor-pointer border-none transition-colors ${
-                        viewMode === 'map' 
-                          ? 'bg-[#007bff] text-white hover:bg-[#0069d9]' 
-                          : 'bg-[#6c757d] text-white hover:bg-[#5a6268]'
-                      }`}
-                    >
-                      <Map size={18} strokeWidth={2.5} />
-                      <span>Map Mode</span>
-                    </button>
+                  {/* ── Premium View Toggle ── */}
+                  <div className="view-toggle-container" style={{ marginTop: '16px' }}>
+                    <style>{`
+                      .view-toggle-container {
+                        display: flex;
+                        justify-content: center;
+                      }
+                      .view-toggle-track {
+                        position: relative;
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                        padding: 5px;
+                        border-radius: 16px;
+                        background: rgba(15, 23, 42, 0.55);
+                        backdrop-filter: blur(16px);
+                        -webkit-backdrop-filter: blur(16px);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        box-shadow:
+                          0 4px 24px rgba(0, 0, 0, 0.12),
+                          0 1px 3px rgba(0, 0, 0, 0.08),
+                          inset 0 1px 0 rgba(255, 255, 255, 0.04);
+                      }
+                      /* sliding active pill */
+                      .view-toggle-track::before {
+                        content: '';
+                        position: absolute;
+                        top: 5px;
+                        bottom: 5px;
+                        width: calc(50% - 7px);
+                        border-radius: 12px;
+                        background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+                        box-shadow:
+                          0 4px 16px rgba(99, 102, 241, 0.4),
+                          0 0 0 1px rgba(99, 102, 241, 0.15) inset,
+                          0 1px 0 rgba(255, 255, 255, 0.1) inset;
+                        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+                        z-index: 0;
+                      }
+                      .view-toggle-track.mode-list::before {
+                        transform: translateX(0);
+                        left: 5px;
+                      }
+                      .view-toggle-track.mode-map::before {
+                        transform: translateX(calc(100% + 4px));
+                        left: 5px;
+                      }
+
+                      .view-toggle-btn {
+                        position: relative;
+                        z-index: 1;
+                        display: flex;
+                        align-items: center;
+                        gap: 9px;
+                        padding: 10px 24px;
+                        border-radius: 12px;
+                        border: none;
+                        background: transparent;
+                        cursor: pointer;
+                        font-size: 0.85rem;
+                        font-weight: 600;
+                        letter-spacing: 0.01em;
+                        white-space: nowrap;
+                        color: rgba(148, 163, 184, 0.75);
+                        transition: color 0.3s ease;
+                        user-select: none;
+                      }
+                      .view-toggle-btn:hover {
+                        color: rgba(203, 213, 225, 0.95);
+                      }
+                      .view-toggle-btn.active {
+                        color: #fff;
+                      }
+                      .view-toggle-btn:active {
+                        transform: scale(0.97);
+                      }
+
+                      /* icon wrapper */
+                      .vt-icon {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 28px;
+                        height: 28px;
+                        border-radius: 8px;
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                      }
+                      .view-toggle-btn:not(.active) .vt-icon {
+                        background: rgba(255, 255, 255, 0.04);
+                      }
+                      .view-toggle-btn.active .vt-icon {
+                        background: rgba(255, 255, 255, 0.15);
+                        box-shadow: 0 0 12px rgba(255, 255, 255, 0.08);
+                      }
+                      .view-toggle-btn:hover .vt-icon {
+                        transform: scale(1.12) rotate(-3deg);
+                      }
+
+                      /* live pulse dot on active */
+                      .vt-pulse {
+                        display: none;
+                        width: 6px;
+                        height: 6px;
+                        border-radius: 50%;
+                        background: #a5f3fc;
+                        box-shadow: 0 0 6px rgba(165, 243, 252, 0.6);
+                        animation: vtPulse 2s ease-in-out infinite;
+                      }
+                      .view-toggle-btn.active .vt-pulse {
+                        display: block;
+                      }
+                      @keyframes vtPulse {
+                        0%, 100% { opacity: 1; transform: scale(1); }
+                        50% { opacity: 0.5; transform: scale(1.6); }
+                      }
+
+                      /* responsive */
+                      @media (max-width: 480px) {
+                        .view-toggle-btn {
+                          padding: 9px 16px;
+                          font-size: 0.8rem;
+                          gap: 6px;
+                        }
+                        .vt-icon {
+                          width: 24px;
+                          height: 24px;
+                          border-radius: 6px;
+                        }
+                      }
+                    `}</style>
+
+                    <div className={`view-toggle-track mode-${viewMode}`}>
+                      <button
+                        onClick={() => setViewMode('list')}
+                        className={`view-toggle-btn${viewMode === 'list' ? ' active' : ''}`}
+                      >
+                        <span className="vt-icon"><LayoutGrid size={16} strokeWidth={2.2} /></span>
+                        <span>List View</span>
+                        <span className="vt-pulse" />
+                      </button>
+                      <button
+                        onClick={() => setViewMode('map')}
+                        className={`view-toggle-btn${viewMode === 'map' ? ' active' : ''}`}
+                      >
+                        <span className="vt-icon"><Map size={16} strokeWidth={2.2} /></span>
+                        <span>Map Mode</span>
+                        <span className="vt-pulse" />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -313,6 +442,10 @@ export default function App() {
 
         {currentPage === 'auth' && (
           <Auth onLogin={(u) => { setUser(u); setCurrentPage('home'); }} />
+        )}
+
+        {currentPage === 'reset-password' && (
+          <ResetPassword />
         )}
 
         {currentPage === 'upload' && user && (

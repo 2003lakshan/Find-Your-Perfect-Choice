@@ -47,4 +47,29 @@ router.delete('/:id', authMiddleware, adminMiddleware, (req, res) => {
   }
 });
 
+// PATCH /api/users/:id/role
+router.patch('/:id/role', authMiddleware, adminMiddleware, (req, res) => {
+  try {
+    const db = getDB();
+    const id = req.params.id;
+    const { role } = req.body;
+    
+    if (id == req.user.id) {
+      return res.status(400).json({ error: 'Cannot change your own role' });
+    }
+    
+    if (role !== 'admin' && role !== 'user') {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
+
+    db.run('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+    saveDB();
+    
+    res.json({ success: true, role });
+  } catch (err) {
+    console.error('Update user role error:', err);
+    res.status(500).json({ error: 'Failed to update user role' });
+  }
+});
+
 export default router;

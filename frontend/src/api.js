@@ -1,5 +1,6 @@
-const API_URL = "https://find-your-perfect-choice-production.up.railway.app/api";
-const SERVER_URL = "https://find-your-perfect-choice-production.up.railway.app";
+const IS_DEV = import.meta.env.DEV;
+const SERVER_URL = IS_DEV ? "http://localhost:5000" : "https://find-your-perfect-choice-production.up.railway.app";
+const API_URL = `${SERVER_URL}/api`;
 
 function getHeaders() {
   const token = localStorage.getItem("bodim_token");
@@ -62,6 +63,30 @@ export const api = {
       localStorage.setItem("bodim_token", data.token);
     }
 
+    return data;
+  },
+
+  async forgotPassword(email) {
+    const res = await fetch(`${API_URL}/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to send reset email");
+    return data;
+  },
+
+  async resetPassword(token, newPassword) {
+    const res = await fetch(`${API_URL}/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, newPassword })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Password reset failed");
     return data;
   },
 
@@ -190,6 +215,18 @@ export const api = {
 
     if (!res.ok) throw new Error(data.error || "Failed to delete user");
 
+    return data;
+  },
+
+  async updateUserRole(id, role) {
+    const res = await fetch(`${API_URL}/users/${id}/role`, {
+      method: "PATCH",
+      headers: getHeaders(),
+      body: JSON.stringify({ role })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to update user role");
     return data;
   },
 

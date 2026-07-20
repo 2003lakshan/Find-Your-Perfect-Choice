@@ -5,6 +5,36 @@ import { generateToken, authMiddleware } from '../middleware/auth.js';
 import * as otplib from 'otplib';
 import qrcode from 'qrcode';
 import { OAuth2Client } from 'google-auth-library';
+import nodemailer from 'nodemailer';
+import jwt from 'jsonwebtoken';
+
+const RESET_SECRET = 'bodim-reset-secret-key';
+
+// Reusable transporter (Uses Gmail if configured, otherwise falls back to Ethereal for testing)
+const getTransporter = async () => {
+  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+  }
+
+  // Fallback to testing (Ethereal)
+  console.log("⚠️ Using Ethereal test email. Configure EMAIL_USER and EMAIL_PASS in .env for real emails.");
+  const testAccount = await nodemailer.createTestAccount();
+  return nodemailer.createTransport({
+    host: "smtp.ethereal.email",
+    port: 587,
+    secure: false,
+    auth: {
+      user: testAccount.user,
+      pass: testAccount.pass,
+    },
+  });
+};
 
 const GOOGLE_CLIENT_ID = '900186992458-u5g7q60tfq2aj233vee4nb7e56ec7nsb.apps.googleusercontent.com';
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
@@ -223,6 +253,89 @@ router.post('/google', async (req, res) => {
   } catch (err) {
     console.error('Google auth error:', err);
     res.status(401).json({ error: 'Google authentication failed' });
+  }
+});
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const db = getDB();
+    const { email } = req.body;
+
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    const existing = db.exec('SELECT id, name FROM users WHERE email = ?', [email]);
+    if (existing.length === 0 || existing[0].values.length === 0) {
+      // Return success even if not found to prevent email enumeration
+      return res.json({ success: true, message: 'If an account exists, a reset link has been sent.' });
+    }
+
+    const user = {
+      id: existing[0].values[0][0],
+      name: existing[0].values[0][1],
+      email
+    };
+
+    // Generate token valid for 15 minutes
+    const token = jwt.sign({ id: user.id }, RESET_SECRET, { expiresIn: '15m' });
+    
+    // Determine frontend URL (localhost vs production)
+    const frontendUrl = req.headers.origin || 'http://localhost:5173';
+    const resetLink = `${frontendUrl}/reset-password?token=${token}`;
+
+    const transporter = await getTransporter();
+    const info = await transporter.sendMail({
+      from: '"Bodim Support" <support@bodim.example.com>',
+      to: email,
+      subject: "Password Reset Request",
+      html: `
+        <h2>Password Reset</h2>
+        <p>Hi ${user.name},</p>
+        <p>You requested to reset your password. Click the button below to set a new password:</p>
+        <a href="${resetLink}" style="padding: 10px 20px; background: #6366f1; color: white; text-decoration: none; border-radius: 8px; display: inline-block;">Reset Password</a>
+        <p>If you didn't request this, you can safely ignore this email. This link expires in 15 minutes.</p>
+      `
+    });
+
+    console.log("==========================================");
+    console.log("Password Reset Email sent!");
+    console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+    console.log("==========================================");
+
+    res.json({ success: true, message: 'If an account exists, a reset link has been sent.' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Failed to process request' });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', (req, res) => {
+  try {
+    const db = getDB();
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, RESET_SECRET);
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid or expired token' });
+    }
+
+    const userId = decoded.id;
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    
+    db.run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, userId]);
+    saveDB();
+
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 });
 

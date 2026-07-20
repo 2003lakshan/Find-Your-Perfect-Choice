@@ -54,6 +54,18 @@ export default function AdminDashboard({ user }) {
     }
   };
 
+  const handleToggleRole = async (id, currentRole) => {
+    if (id === user.id) { alert("You cannot change your own role."); return; }
+    const newRole = currentRole === 'admin' ? 'user' : 'admin';
+    if (!window.confirm(`Are you sure you want to make this user an ${newRole}?`)) return;
+    try {
+      await api.updateUserRole(id, newRole);
+      setUsers(users.map(u => u.id === id ? { ...u, role: newRole } : u));
+    } catch (err) {
+      alert('Failed to update role: ' + err.message);
+    }
+  };
+
   const handleDeleteBoarding = async (id, title) => {
     if (!window.confirm(`Delete boarding "${title}"? This cannot be undone.`)) return;
     try {
@@ -758,15 +770,24 @@ export default function AdminDashboard({ user }) {
                             {new Date(u.created_at).toLocaleDateString()}
                           </span>
                         </td>
-                        <td style={{ textAlign: 'right' }}>
+                        <td style={{ textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                           {u.id !== user.id && (
-                            <button
-                              className="action-btn delete"
-                              onClick={() => handleDeleteUser(u.id, u.name)}
-                              title="Delete user"
-                            >
-                              <Trash2 size={18} />
-                            </button>
+                            <>
+                              <button
+                                className={`action-btn ${u.role === 'admin' ? 'delete' : 'edit'}`}
+                                onClick={() => handleToggleRole(u.id, u.role)}
+                                title={u.role === 'admin' ? "Remove Admin" : "Make Admin"}
+                              >
+                                <Shield size={18} />
+                              </button>
+                              <button
+                                className="action-btn delete"
+                                onClick={() => handleDeleteUser(u.id, u.name)}
+                                title="Delete user"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </>
                           )}
                         </td>
                       </tr>

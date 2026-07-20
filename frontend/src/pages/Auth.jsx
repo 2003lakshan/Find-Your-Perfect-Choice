@@ -26,6 +26,15 @@ export default function Auth({ onLogin }) {
   const [mounted, setMounted] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [gsiReady, setGsiReady] = useState(false);
+  
+  // Forgot Password states
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotPassword, setForgotPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+
   const cardRef = useRef(null);
 
   // Handle Google credential response
@@ -144,6 +153,20 @@ export default function Auth({ onLogin }) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotLoading(true);
+    try {
+      await api.forgotPassword(forgotEmail);
+      setForgotSuccess(true);
+    } catch (err) {
+      setForgotError(err.message);
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -632,7 +655,8 @@ export default function Auth({ onLogin }) {
                     <div style={{ textAlign: 'right', marginTop: 8 }}>
                       <button
                         type="button"
-                        style={{ background: 'none', border: 'none', color: '#a78bfa', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                        onClick={() => { setShowForgotModal(true); setForgotSuccess(false); setForgotError(''); setForgotEmail(''); setForgotPassword(''); }}
+                        style={{ background: 'none', border: 'none', color: '#a78bfa', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', padding: '8px 0 8px 16px', marginTop: '-4px' }}
                       >
                         Forgot password?
                       </button>
@@ -692,6 +716,48 @@ export default function Auth({ onLogin }) {
           )}
         </div>
       </div>
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="modal-overlay" onClick={() => setShowForgotModal(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <div className="auth-card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 400, padding: 32, margin: 20, maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2 className="auth-title" style={{ fontSize: '1.5rem', marginBottom: 8 }}>Reset Password</h2>
+            
+            {forgotSuccess ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <p style={{ color: '#10b981', fontWeight: 600, marginBottom: 16 }}>If an account exists, a reset link has been sent to your email.</p>
+                <button type="button" className="auth-btn" onClick={() => { setShowForgotModal(false); setForgotSuccess(false); }}>
+                  <span>Return to Login</span>
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="auth-sub" style={{ marginBottom: 24 }}>Enter your email address to receive a password reset link.</p>
+                {forgotError && <div className="auth-error" style={{ marginBottom: 16 }}>{forgotError}</div>}
+                <form onSubmit={handleForgotSubmit}>
+                  <div className="field-group">
+                    <label className="field-label">Email Address</label>
+                    <div className="field-wrap">
+                      <span className="field-icon"><Mail size={17} /></span>
+                      <input className="field-input" type="email" required placeholder="hello@example.com" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+                    <button type="button" className="auth-btn" style={{ background: 'transparent', border: '1.5px solid rgba(0,0,0,0.1)', color: 'var(--foreground)', boxShadow: 'none' }} onClick={() => setShowForgotModal(false)}>
+                      <span>Cancel</span>
+                    </button>
+                    <button type="submit" className="auth-btn" disabled={forgotLoading}>
+                      {forgotLoading ? <div className="spinner" /> : <span>Send Reset Link</span>}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

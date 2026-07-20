@@ -9,9 +9,9 @@ import { api } from '../api';
 
 /* ─── Step indicator data ─── */
 const STEPS = [
-  { id: 1, label: 'Details',  icon: FileText },
+  { id: 1, label: 'Payment & Details',  icon: FileText },
   { id: 2, label: 'Location', icon: MapPin },
-  { id: 3, label: 'Photos & Payment',   icon: Camera },
+  { id: 3, label: 'Photos',   icon: Camera },
 ];
 
 const SRI_LANKA_CITIES = [
@@ -78,7 +78,7 @@ export default function Upload({ onUpload }) {
     }
   };
 
-  const canStep1 = formData.title && formData.city && formData.price && formData.contact;
+  const canStep1 = formData.title && formData.city && formData.price && formData.contact && formData.receiptFile;
 
   return (
     <>
@@ -424,9 +424,73 @@ export default function Upload({ onUpload }) {
           {/* ── Error ── */}
           {error && <div className="up-error">{error}</div>}
 
-          {/* ══════ STEP 1 — Details ══════ */}
+          {/* ══════ STEP 1 — Payment & Details ══════ */}
           {step === 1 && (
-            <div className="up-card">
+            <>
+              {/* --- BANK DETAILS SECTION --- */}
+              <div className="up-card" style={{ marginBottom: '24px' }}>
+                <div className="card-header">
+                  <div className="card-icon"><DollarSign size={20} /></div>
+                  <div>
+                    <div className="card-title">Listing Fee Payment</div>
+                    <div className="card-subtitle">Pay RS 1000 to list your boarding place</div>
+                  </div>
+                </div>
+                <div className="card-body">
+                   <div style={{ background: 'rgba(139,100,60,0.05)', padding: '20px', borderRadius: '14px', border: '1px solid rgba(139,100,60,0.1)', marginBottom: '20px' }}>
+                     <h4 style={{ margin: '0 0 10px', color: '#8B643C', fontSize: '0.9rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bank Account Details</h4>
+                     <p style={{ margin: '0 0 4px', fontSize: '1rem', color: '#1a1208', fontWeight: 500 }}><strong>Bank:</strong> Bank of Ceylon</p>
+                     <p style={{ margin: '0 0 4px', fontSize: '1rem', color: '#1a1208', fontWeight: 500 }}><strong>Branch:</strong> Badulla City Branch (729)</p>
+                     <p style={{ margin: '0 0 4px', fontSize: '1rem', color: '#1a1208', fontWeight: 500 }}><strong>Account Name:</strong> MR R M N L RATHNAYAKA</p>
+                     <p style={{ margin: 0, fontSize: '1.2rem', color: '#1a1208', fontWeight: 700, marginTop: '8px' }}><strong>Account No:</strong> 0091000137</p>
+                   </div>
+                   
+                   <label className="field-label" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 700, color: '#8B643C' }}>
+                     Payment Receipt (Required)
+                   </label>
+                   <p style={{ fontSize: '0.85rem', color: '#6b5b45', marginBottom: '1rem', lineHeight: '1.4' }}>
+                     Please transfer <strong>RS 1000</strong> to the above account and upload the bank transfer slip or transaction screenshot.
+                   </p>
+                   
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                     <input 
+                       type="file" 
+                       accept="image/*" 
+                       onChange={e => {
+                         const file = e.target.files[0];
+                         if (file) {
+                           patch({
+                             receiptFile: file,
+                             receiptPreview: URL.createObjectURL(file)
+                           });
+                         }
+                       }}
+                       className="hidden"
+                       id="receipt-upload"
+                     />
+                     <label 
+                       htmlFor="receipt-upload" 
+                       className="drop-btn" 
+                       style={{ margin: 0, padding: '10px 20px', cursor: 'pointer', display: 'inline-block', fontSize: '0.875rem' }}
+                     >
+                       {formData.receiptFile ? 'Change Receipt' : 'Upload Receipt'}
+                     </label>
+                     {formData.receiptFile && (
+                       <span style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                         <CheckCircle2 size={16} /> {formData.receiptFile.name}
+                       </span>
+                     )}
+                   </div>
+
+                   {formData.receiptPreview && (
+                     <div style={{ marginTop: '1rem', maxWidth: '240px', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                       <img src={formData.receiptPreview} alt="Receipt Preview" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                     </div>
+                   )}
+                </div>
+              </div>
+
+              <div className="up-card">
               <div className="card-header">
                 <div className="card-icon"><FileText size={20} /></div>
                 <div>
@@ -536,6 +600,7 @@ export default function Upload({ onUpload }) {
                 </div>
               </div>
             </div>
+          </>
           )}
 
           {/* ══════ STEP 2 — Location ══════ */}
@@ -618,57 +683,11 @@ export default function Upload({ onUpload }) {
                   </div>
                 )}
 
-                 {/* Payment Receipt Upload */}
-                <div style={{ marginTop: '2.5rem', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '2rem' }}>
-                  <label className="field-label" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 700, color: 'var(--ink-80)' }}>
-                    Payment Receipt (Required)
-                  </label>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--ink-40)', marginBottom: '1rem', lineHeight: '1.4' }}>
-                    Please upload the bank transfer slip or transaction screenshot verifying the listing fee payment.
-                  </p>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={e => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          patch({
-                            receiptFile: file,
-                            receiptPreview: URL.createObjectURL(file)
-                          });
-                        }
-                      }}
-                      className="hidden"
-                      id="receipt-upload"
-                    />
-                    <label 
-                      htmlFor="receipt-upload" 
-                      className="drop-btn" 
-                      style={{ margin: 0, padding: '10px 20px', cursor: 'pointer', display: 'inline-block', fontSize: '0.875rem' }}
-                    >
-                      {formData.receiptFile ? 'Change Receipt' : 'Upload Receipt'}
-                    </label>
-                    {formData.receiptFile && (
-                      <span style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        ✓ {formData.receiptFile.name}
-                      </span>
-                    )}
-                  </div>
-
-                  {formData.receiptPreview && (
-                    <div style={{ marginTop: '1rem', maxWidth: '240px', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                      <img src={formData.receiptPreview} alt="Receipt Preview" style={{ width: '100%', height: 'auto', display: 'block' }} />
-                    </div>
-                  )}
-                </div>
-
                 <div className="btn-row" style={{ marginTop: '2.5rem' }}>
                   <button className="btn-back" onClick={() => setStep(2)}>
                     <ArrowLeft size={16} /> Back
                   </button>
-                  <button className="btn-next" onClick={handleSubmit} disabled={loading || !formData.receiptFile}>
+                  <button className="btn-next" onClick={handleSubmit} disabled={loading}>
                     {loading
                       ? <><div className="spinner" /><span>Publishing…</span></>
                       : <><span>Publish Listing</span><ArrowRight size={18} className="btn-arrow" /></>
