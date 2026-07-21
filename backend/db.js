@@ -33,6 +33,8 @@ export async function initDB() {
       auth_provider TEXT DEFAULT 'local',
       two_factor_secret TEXT,
       two_factor_enabled BOOLEAN DEFAULT 0,
+      login_otp TEXT,
+      login_otp_expiry DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -43,6 +45,8 @@ export async function initDB() {
   try { db.run(`ALTER TABLE users ADD COLUMN two_factor_enabled BOOLEAN DEFAULT 0`); } catch(e) {}
   try { db.run(`ALTER TABLE users ADD COLUMN google_id TEXT`); } catch(e) {}
   try { db.run(`ALTER TABLE users ADD COLUMN auth_provider TEXT DEFAULT 'local'`); } catch(e) {}
+  try { db.run(`ALTER TABLE users ADD COLUMN login_otp TEXT`); } catch(e) {}
+  try { db.run(`ALTER TABLE users ADD COLUMN login_otp_expiry DATETIME`); } catch(e) {}
 
   db.run(`
     CREATE TABLE IF NOT EXISTS boardings (

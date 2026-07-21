@@ -256,8 +256,8 @@ router.post('/google', async (req, res) => {
   }
 });
 
-// POST /api/auth/forgot-password
-router.post('/forgot-password', async (req, res) => {
+// POST /api/auth/send-otp
+router.post('/send-otp', async (req, res) => {
   try {
     const db = getDB();
     const { email } = req.body;
@@ -267,7 +267,7 @@ router.post('/forgot-password', async (req, res) => {
     const existing = db.exec('SELECT id, name FROM users WHERE LOWER(email) = LOWER(?)', [email]);
     if (existing.length === 0 || existing[0].values.length === 0) {
       // Return success even if not found to prevent email enumeration
-      return res.json({ success: true, message: 'If an account exists, a reset link has been sent.' });
+      return res.json({ success: true, message: 'If an account exists, an OTP has been sent.' });
     }
 
     const user = {
@@ -276,67 +276,86 @@ router.post('/forgot-password', async (req, res) => {
       email
     };
 
-    // Generate token valid for 15 minutes
-    const token = jwt.sign({ id: user.id }, RESET_SECRET, { expiresIn: '15m' });
-    
-    // Determine frontend URL (localhost vs production)
-    const frontendUrl = req.headers.origin || 'http://localhost:5173';
-    const resetLink = `${frontendUrl}/reset-password?token=${token}`;
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = new Date(Date.now() + 10 * 60000).toISOString(); // 10 mins
+
+    db.run('UPDATE users SET login_otp = ?, login_otp_expiry = ? WHERE id = ?', [otp, expiry, user.id]);
+    saveDB();
 
     const transporter = await getTransporter();
     const senderEmail = process.env.EMAIL_USER || 'support@bodim.example.com';
     const info = await transporter.sendMail({
       from: `"Bodim Support" <${senderEmail}>`,
       to: email,
-      subject: "Password Reset Request",
+      subject: "Your Login OTP",
       html: `
-        <h2>Password Reset</h2>
+        <h2>Login Request</h2>
         <p>Hi ${user.name},</p>
-        <p>You requested to reset your password. Click the button below to set a new password:</p>
-        <a href="${resetLink}" style="padding: 10px 20px; background: #6366f1; color: white; text-decoration: none; border-radius: 8px; display: inline-block;">Reset Password</a>
-        <p>If you didn't request this, you can safely ignore this email. This link expires in 15 minutes.</p>
+        <p>Your One-Time Password (OTP) for login is:</p>
+        <h1 style="padding: 10px 20px; background: #f3f4f6; color: #111827; border-radius: 8px; display: inline-block; letter-spacing: 4px;">${otp}</h1>
+        <p>This code expires in 10 minutes. If you didn't request this, you can safely ignore this email.</p>
       `
     });
 
     console.log("==========================================");
-    console.log("Password Reset Email sent!");
-    console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+    console.log("OTP Email sent!");
+    console.log("OTP: %s", otp);
+    if (info.messageId && !process.env.EMAIL_USER) {
+      console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+    }
     console.log("==========================================");
 
-    res.json({ success: true, message: 'If an account exists, a reset link has been sent.' });
+    res.json({ success: true, message: 'If an account exists, an OTP has been sent.' });
   } catch (err) {
-    console.error('Forgot password error:', err);
+    console.error('Send OTP error:', err);
     res.status(500).json({ error: 'Failed to process request' });
   }
 });
 
-// POST /api/auth/reset-password
-router.post('/reset-password', (req, res) => {
+// POST /api/auth/verify-otp
+router.post('/verify-otp', (req, res) => {
   try {
     const db = getDB();
-    const { token, newPassword } = req.body;
+    const { email, otp } = req.body;
 
-    if (!token || !newPassword) {
-      return res.status(400).json({ error: 'Token and new password are required' });
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email and OTP are required' });
     }
 
-    let decoded;
-    try {
-      decoded = jwt.verify(token, RESET_SECRET);
-    } catch (e) {
-      return res.status(400).json({ error: 'Invalid or expired token' });
+    const result = db.exec('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email]);
+    if (result.length === 0 || result[0].values.length === 0) {
+      return res.status(401).json({ error: 'Invalid email or OTP' });
     }
 
-    const userId = decoded.id;
-    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    const cols = result[0].columns;
+    const row = result[0].values[0];
+    const user = {};
+    cols.forEach((col, i) => user[col] = row[i]);
+
+    if (!user.login_otp || user.login_otp !== otp) {
+      return res.status(401).json({ error: 'Invalid or expired OTP' });
+    }
+
+    const now = new Date();
+    const expiryDate = new Date(user.login_otp_expiry);
     
-    db.run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, userId]);
+    if (now > expiryDate) {
+      return res.status(401).json({ error: 'OTP has expired' });
+    }
+
+    // Clear OTP after successful verification
+    db.run('UPDATE users SET login_otp = NULL, login_otp_expiry = NULL WHERE id = ?', [user.id]);
     saveDB();
 
-    res.json({ success: true, message: 'Password updated successfully' });
+    const token = generateToken(user);
+    res.json({
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      token
+    });
   } catch (err) {
-    console.error('Reset password error:', err);
-    res.status(500).json({ error: 'Failed to reset password' });
+    console.error('Verify OTP error:', err);
+    res.status(500).json({ error: 'Failed to verify OTP' });
   }
 });
 
