@@ -615,7 +615,10 @@ export default function Upload({ onUpload }) {
               </div>
               <div className="card-body">
                 <div className="map-wrap">
-                  <MapPicker onPositionSelect={pos => patch({ location: pos })} />
+                  <MapPicker 
+                    initialPosition={formData.location}
+                    onPositionSelect={pos => patch({ location: pos })} 
+                  />
                 </div>
                 {formData.location && (
                   <div style={{ textAlign: 'center' }}>
