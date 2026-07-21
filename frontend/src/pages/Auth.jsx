@@ -27,13 +27,13 @@ export default function Auth({ onLogin }) {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [gsiReady, setGsiReady] = useState(false);
   
-  // Forgot Password states
-  const [showForgotModal, setShowForgotModal] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotPassword, setForgotPassword] = useState('');
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotError, setForgotError] = useState('');
-  const [forgotSuccess, setForgotSuccess] = useState(false);
+  // OTP Login states
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpEmail, setOtpEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpStep, setOtpStep] = useState(1); // 1: Email, 2: OTP
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState('');
 
   const cardRef = useRef(null);
 
@@ -156,17 +156,32 @@ export default function Auth({ onLogin }) {
     }
   };
 
-  const handleForgotSubmit = async (e) => {
+  const handleSendOtp = async (e) => {
     e.preventDefault();
-    setForgotError('');
-    setForgotLoading(true);
+    setOtpError('');
+    setOtpLoading(true);
     try {
-      await api.forgotPassword(forgotEmail);
-      setForgotSuccess(true);
+      await api.sendOtpLogin(otpEmail);
+      setOtpStep(2);
     } catch (err) {
-      setForgotError(err.message);
+      setOtpError(err.message);
     } finally {
-      setForgotLoading(false);
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setOtpError('');
+    setOtpLoading(true);
+    try {
+      const data = await api.verifyOtpLogin(otpEmail, otpCode);
+      setShowOtpModal(false);
+      onLogin(data.user);
+    } catch (err) {
+      setOtpError(err.message);
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -655,10 +670,10 @@ export default function Auth({ onLogin }) {
                     <div style={{ textAlign: 'right', marginTop: 8 }}>
                       <button
                         type="button"
-                        onClick={() => { setShowForgotModal(true); setForgotSuccess(false); setForgotError(''); setForgotEmail(''); setForgotPassword(''); }}
+                        onClick={() => { setShowOtpModal(true); setOtpStep(1); setOtpError(''); setOtpEmail(''); setOtpCode(''); }}
                         style={{ background: 'none', border: 'none', color: '#a78bfa', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', padding: '8px 0 8px 16px', marginTop: '-4px' }}
                       >
-                        Forgot password?
+                        Login with OTP
                       </button>
                     </div>
                   )}
@@ -716,40 +731,55 @@ export default function Auth({ onLogin }) {
           )}
         </div>
       </div>
-      {/* Forgot Password Modal */}
-      {showForgotModal && (
-        <div className="modal-overlay" onClick={() => setShowForgotModal(false)} style={{
+      {/* OTP Login Modal */}
+      {showOtpModal && (
+        <div className="modal-overlay" onClick={() => setShowOtpModal(false)} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
         }}>
           <div className="auth-card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 400, padding: 32, margin: 20, maxHeight: '90vh', overflowY: 'auto' }}>
-            <h2 className="auth-title" style={{ fontSize: '1.5rem', marginBottom: 8 }}>Reset Password</h2>
+            <h2 className="auth-title" style={{ fontSize: '1.5rem', marginBottom: 8 }}>Login with OTP</h2>
             
-            {forgotSuccess ? (
-              <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <p style={{ color: '#10b981', fontWeight: 600, marginBottom: 16 }}>If an account exists, a reset link has been sent to your email.</p>
-                <button type="button" className="auth-btn" onClick={() => { setShowForgotModal(false); setForgotSuccess(false); }}>
-                  <span>Return to Login</span>
-                </button>
-              </div>
-            ) : (
+            {otpStep === 1 ? (
               <>
-                <p className="auth-sub" style={{ marginBottom: 24 }}>Enter your email address to receive a password reset link.</p>
-                {forgotError && <div className="auth-error" style={{ marginBottom: 16 }}>{forgotError}</div>}
-                <form onSubmit={handleForgotSubmit}>
+                <p className="auth-sub" style={{ marginBottom: 24 }}>Enter your email address to receive a one-time password.</p>
+                {otpError && <div className="auth-error" style={{ marginBottom: 16 }}>{otpError}</div>}
+                <form onSubmit={handleSendOtp}>
                   <div className="field-group">
                     <label className="field-label">Email Address</label>
                     <div className="field-wrap">
                       <span className="field-icon"><Mail size={17} /></span>
-                      <input className="field-input" type="email" required placeholder="hello@example.com" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} />
+                      <input className="field-input" type="email" required placeholder="hello@example.com" value={otpEmail} onChange={e => setOtpEmail(e.target.value)} />
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-                    <button type="button" className="auth-btn" style={{ background: 'transparent', border: '1.5px solid rgba(0,0,0,0.1)', color: 'var(--foreground)', boxShadow: 'none' }} onClick={() => setShowForgotModal(false)}>
+                    <button type="button" className="auth-btn" style={{ background: 'transparent', border: '1.5px solid rgba(0,0,0,0.1)', color: '#334155', boxShadow: 'none' }} onClick={() => setShowOtpModal(false)}>
                       <span>Cancel</span>
                     </button>
-                    <button type="submit" className="auth-btn" disabled={forgotLoading}>
-                      {forgotLoading ? <div className="spinner" /> : <span>Send Reset Link</span>}
+                    <button type="submit" className="auth-btn" disabled={otpLoading}>
+                      {otpLoading ? <div className="spinner" /> : <span>Send OTP</span>}
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <>
+                <p className="auth-sub" style={{ marginBottom: 24 }}>Enter the 6-digit code sent to {otpEmail}.</p>
+                {otpError && <div className="auth-error" style={{ marginBottom: 16 }}>{otpError}</div>}
+                <form onSubmit={handleVerifyOtp}>
+                  <div className="field-group">
+                    <label className="field-label">OTP Code</label>
+                    <div className="field-wrap">
+                      <span className="field-icon"><Lock size={17} /></span>
+                      <input className="field-input" type="text" required placeholder="123456" maxLength={6} value={otpCode} onChange={e => setOtpCode(e.target.value)} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+                    <button type="button" className="auth-btn" style={{ background: 'transparent', border: '1.5px solid rgba(0,0,0,0.1)', color: '#334155', boxShadow: 'none' }} onClick={() => setOtpStep(1)}>
+                      <span>Back</span>
+                    </button>
+                    <button type="submit" className="auth-btn" disabled={otpLoading}>
+                      {otpLoading ? <div className="spinner" /> : <span>Verify & Login</span>}
                     </button>
                   </div>
                 </form>

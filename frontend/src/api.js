@@ -66,27 +66,30 @@ export const api = {
     return data;
   },
 
-  async forgotPassword(email) {
-    const res = await fetch(`${API_URL}/auth/forgot-password`, {
+  async sendOtpLogin(email) {
+    const res = await fetch(`${API_URL}/auth/send-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email })
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to send reset email");
+    if (!res.ok) throw new Error(data.error || "Failed to send OTP email");
     return data;
   },
 
-  async resetPassword(token, newPassword) {
-    const res = await fetch(`${API_URL}/auth/reset-password`, {
+  async verifyOtpLogin(email, otp) {
+    const res = await fetch(`${API_URL}/auth/verify-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, newPassword })
+      body: JSON.stringify({ email, otp })
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Password reset failed");
+    if (!res.ok) throw new Error(data.error || "OTP verification failed");
+    
+    // Save token as this logs the user in
+    localStorage.setItem("bodim_token", data.token);
     return data;
   },
 
