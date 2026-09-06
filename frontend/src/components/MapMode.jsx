@@ -5,19 +5,42 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // Dynamic SVG icon based on gender
-const getMarkerIcon = (gender) => {
-  let color = '#8b5cf6'; // Default (Any) - Purple
-  if (gender === 'girls') color = '#ec4899'; // Pink
-  else if (gender === 'boys') color = '#3b82f6'; // Blue
+const getMarkerIcon = (item) => {
+  let color = '#8b5cf6'; // Default (Any Boarding) - Purple
+  if (item.category === 'boarding') {
+    if (item.gender === 'girls') color = '#ec4899'; // Pink
+    else if (item.gender === 'boys') color = '#3b82f6'; // Blue
+  } else if (item.category === 'vehicle') {
+    color = '#f59e0b'; // Orange
+  } else if (item.category === 'land') {
+    color = '#10b981'; // Green
+  }
+
+  let svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>`;
+
+  if (item.category === 'land') {
+    svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
+  } else if (item.category === 'vehicle') {
+    const type = item.vehicle_type?.toLowerCase() || '';
+    if (type.includes('bike') || type.includes('motorcycle') || type.includes('scooter') || type.includes('bicycle')) {
+      svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"/></svg>`;
+    } else if (type.includes('lorry') || type.includes('truck')) {
+      svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><rect x="16" y="8" width="7" height="8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`;
+    } else if (type.includes('bus') || type.includes('van')) {
+      svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M6 17v4"/><path d="M18 17v4"/><path d="M8 7h8"/><circle cx="6" cy="13" r="1"/><circle cx="18" cy="13" r="1"/></svg>`;
+    } else {
+      svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>`;
+    }
+  }
 
   return L.divIcon({
     className: 'custom-marker',
     html: `
       <div style="background-color: ${color}; color: white; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
+        ${svgIcon}
       </div>
     `,
     iconSize: [36, 36],
@@ -204,9 +227,9 @@ export default function MapMode({ boardings, onViewDetails }) {
 
         {validBoardings.map(boarding => (
           <Marker
-            key={boarding.id}
+            key={boarding.category + '-' + boarding.id}
             position={[boarding.latitude, boarding.longitude]}
-            icon={getMarkerIcon(boarding.gender)}
+            icon={getMarkerIcon(boarding)}
           >
             <Popup>
               <MapPopupCard 

@@ -278,4 +278,196 @@ export const api = {
 
     return data;
   }
+,
+  // --- Vehicles ---
+  async getVehicles(city, search) {
+    const params = new URLSearchParams();
+    if (city) params.set("city", city);
+    if (search) params.set("search", search);
+    const res = await fetch(`${API_URL}/vehicles?${params}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch vehicles");
+    return data.map((v) => ({ ...v, images: v.images.map(fixImageUrl) }));
+  },
+  async getMyVehicles() {
+    const res = await fetch(`${API_URL}/vehicles/my-listings`, { headers: getHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch vehicles");
+    return data.map((v) => ({
+      ...v,
+      images: v.images.map(fixImageUrl),
+      payment_receipt: v.payment_receipt ? `${SERVER_URL}/uploads/${v.payment_receipt}` : null
+    }));
+  },
+  async getVehicle(id) {
+    const res = await fetch(`${API_URL}/vehicles/${id}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch vehicle");
+    return { ...data, images: data.images.map(fixImageUrl) };
+  },
+  async createVehicle(formData) {
+    const res = await fetch(`${API_URL}/vehicles`, {
+      method: "POST", headers: getAuthHeader(), body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to create vehicle");
+    return data;
+  },
+  async deleteVehicle(id) {
+    const res = await fetch(`${API_URL}/vehicles/${id}`, {
+      method: "DELETE", headers: getHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to delete vehicle");
+    return data;
+  },
+  async getAdminVehicles() {
+    const res = await fetch(`${API_URL}/vehicles/admin/all`, { headers: getHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch admin vehicles");
+    return data.map((v) => ({
+      ...v,
+      images: v.images.map(fixImageUrl),
+      payment_receipt: v.payment_receipt ? `${SERVER_URL}/uploads/${v.payment_receipt}` : null
+    }));
+  },
+  async updateVehicleStatus(id, status) {
+    const res = await fetch(`${API_URL}/vehicles/${id}/status`, {
+      method: "PATCH", headers: getHeaders(), body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to update status");
+    return data;
+  },
+  async updateVehicle(id, vehicleData) {
+    const res = await fetch(`${API_URL}/vehicles/${id}`, {
+      method: "PUT", headers: getHeaders(), body: JSON.stringify(vehicleData)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to update vehicle");
+    return data;
+  },
+
+  // --- Lands ---
+  async getLands(city, search) {
+    const params = new URLSearchParams();
+    if (city) params.set("city", city);
+    if (search) params.set("search", search);
+    const res = await fetch(`${API_URL}/lands?${params}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch lands");
+    return data.map((l) => ({ ...l, images: l.images.map(fixImageUrl) }));
+  },
+  async getMyLands() {
+    const res = await fetch(`${API_URL}/lands/my-listings`, { headers: getHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch lands");
+    return data.map((l) => ({
+      ...l,
+      images: l.images.map(fixImageUrl),
+      payment_receipt: l.payment_receipt ? `${SERVER_URL}/uploads/${l.payment_receipt}` : null
+    }));
+  },
+  async getLand(id) {
+    const res = await fetch(`${API_URL}/lands/${id}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch land");
+    return { ...data, images: data.images.map(fixImageUrl) };
+  },
+  async createLand(formData) {
+    const res = await fetch(`${API_URL}/lands`, {
+      method: "POST", headers: getAuthHeader(), body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to create land");
+    return data;
+  },
+  async deleteLand(id) {
+    const res = await fetch(`${API_URL}/lands/${id}`, {
+      method: "DELETE", headers: getHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to delete land");
+    return data;
+  },
+  async getAdminLands() {
+    const res = await fetch(`${API_URL}/lands/admin/all`, { headers: getHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch admin lands");
+    return data.map((l) => ({
+      ...l,
+      images: l.images.map(fixImageUrl),
+      payment_receipt: l.payment_receipt ? `${SERVER_URL}/uploads/${l.payment_receipt}` : null
+    }));
+  },
+  async updateLandStatus(id, status) {
+    const res = await fetch(`${API_URL}/lands/${id}/status`, {
+      method: "PATCH", headers: getHeaders(), body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to update status");
+    return data;
+  },
+  async updateLand(id, landData) {
+    const res = await fetch(`${API_URL}/lands/${id}`, {
+      method: "PUT", headers: getHeaders(), body: JSON.stringify(landData)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to update land");
+    return data;
+  },
+
+  // --- Notifications ---
+  async getNotifications() {
+    const res = await fetch(`${API_URL}/notifications`, { headers: getHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch notifications");
+    return data;
+  },
+  async markNotificationAsRead(id) {
+    const res = await fetch(`${API_URL}/notifications/${id}/read`, {
+      method: "PATCH", headers: getHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to mark notification as read");
+    return data;
+  },
+  async markAllNotificationsAsRead() {
+    const res = await fetch(`${API_URL}/notifications/read-all`, {
+      method: "PATCH", headers: getHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to mark all as read");
+    return data;
+  },
+
+  // --- Reviews ---
+  async getAllReviews() {
+    const res = await fetch(`${API_URL}/reviews`, { headers: getAuthHeader() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch all reviews");
+    return data;
+  },
+  async getReviews(type, id) {
+    const res = await fetch(`${API_URL}/reviews/${type}/${id}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch reviews");
+    return data;
+  },
+  async addReview(reviewData) {
+    const res = await fetch(`${API_URL}/reviews`, {
+      method: "POST", headers: getHeaders(), body: JSON.stringify(reviewData)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to add review");
+    return data;
+  },
+  async editReviewByAdmin(id, comment) {
+    const res = await fetch(`${API_URL}/reviews/${id}`, {
+      method: "PATCH", headers: getHeaders(), body: JSON.stringify({ comment })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to update review");
+    return data;
+  }
 };

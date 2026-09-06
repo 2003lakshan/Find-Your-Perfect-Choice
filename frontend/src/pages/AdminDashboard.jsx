@@ -1,23 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Trash2, Shield, AlertCircle, Home, CheckCircle, XCircle, Clock, Edit3, X, Save, Eye, Image, FileText } from 'lucide-react';
+import { Users, Trash2, Shield, AlertCircle, Home, CheckCircle, XCircle, Clock, Edit3, X, Save, Eye, Image, FileText, MapPin, MessageSquare, Star } from 'lucide-react';
 import { api } from '../api';
 
 export default function AdminDashboard({ user }) {
   const [activeTab, setActiveTab] = useState('boardings');
   const [users, setUsers] = useState([]);
   const [boardings, setBoardings] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [lands, setLands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingBoarding, setEditingBoarding] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [statusFilter, setStatusFilter] = useState('all');
 
+  const [allReviews, setAllReviews] = useState([]);
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [editingReviewComment, setEditingReviewComment] = useState('');
+
   useEffect(() => {
     if (user?.role === 'admin') {
       if (activeTab === 'users') fetchUsers();
-      else fetchBoardings();
+      else if (activeTab === 'boardings') fetchBoardings();
+      else if (activeTab === 'vehicles') fetchVehicles();
+      else if (activeTab === 'lands') fetchLands();
+      else if (activeTab === 'reviews') fetchAllReviews();
     }
   }, [user, activeTab]);
+
+  const fetchAllReviews = async () => {
+    try {
+      setLoading(true);
+      const data = await api.getAllReviews();
+      setAllReviews(data);
+    } catch (err) {
+      setError('Failed to load reviews: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -38,6 +59,30 @@ export default function AdminDashboard({ user }) {
       setBoardings(data);
     } catch (err) {
       setError('Failed to load boardings: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchVehicles = async () => {
+    try {
+      setLoading(true);
+      const data = await api.getAdminVehicles();
+      setVehicles(data);
+    } catch (err) {
+      setError('Failed to load vehicles: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchLands = async () => {
+    try {
+      setLoading(true);
+      const data = await api.getAdminLands();
+      setLands(data);
+    } catch (err) {
+      setError('Failed to load lands: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -66,20 +111,36 @@ export default function AdminDashboard({ user }) {
     }
   };
 
-  const handleDeleteBoarding = async (id, title) => {
-    if (!window.confirm(`Delete boarding "${title}"? This cannot be undone.`)) return;
+  const handleDeleteItem = async (id, title) => {
+    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
     try {
-      await api.deleteBoarding(id);
-      setBoardings(boardings.filter(b => b.id !== id));
+      if (activeTab === 'boardings') {
+        await api.deleteBoarding(id);
+        setBoardings(boardings.filter(b => b.id !== id));
+      } else if (activeTab === 'vehicles') {
+        await api.deleteVehicle(id);
+        setVehicles(vehicles.filter(v => v.id !== id));
+      } else if (activeTab === 'lands') {
+        await api.deleteLand(id);
+        setLands(lands.filter(l => l.id !== id));
+      }
     } catch (err) {
-      alert('Failed to delete boarding: ' + err.message);
+      alert('Failed to delete item: ' + err.message);
     }
   };
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      await api.updateBoardingStatus(id, newStatus);
-      setBoardings(boardings.map(b => b.id === id ? { ...b, status: newStatus } : b));
+      if (activeTab === 'boardings') {
+        await api.updateBoardingStatus(id, newStatus);
+        setBoardings(boardings.map(b => b.id === id ? { ...b, status: newStatus } : b));
+      } else if (activeTab === 'vehicles') {
+        await api.updateVehicleStatus(id, newStatus);
+        setVehicles(vehicles.map(v => v.id === id ? { ...v, status: newStatus } : v));
+      } else if (activeTab === 'lands') {
+        await api.updateLandStatus(id, newStatus);
+        setLands(lands.map(l => l.id === id ? { ...l, status: newStatus } : l));
+      }
     } catch (err) {
       alert('Failed to update status: ' + err.message);
     }
@@ -87,11 +148,29 @@ export default function AdminDashboard({ user }) {
 
   const handleEditSave = async () => {
     try {
-      await api.updateBoarding(editingBoarding.id, editForm);
-      setBoardings(boardings.map(b => b.id === editingBoarding.id ? { ...b, ...editForm } : b));
+      if (activeTab === 'boardings') {
+        await api.updateBoarding(editingBoarding.id, editForm);
+        setBoardings(boardings.map(b => b.id === editingBoarding.id ? { ...b, ...editForm } : b));
+      } else if (activeTab === 'vehicles') {
+        await api.updateVehicle(editingBoarding.id, editForm);
+        setVehicles(vehicles.map(v => v.id === editingBoarding.id ? { ...v, ...editForm } : v));
+      } else if (activeTab === 'lands') {
+        await api.updateLand(editingBoarding.id, editForm);
+        setLands(lands.map(l => l.id === editingBoarding.id ? { ...l, ...editForm } : l));
+      }
       setEditingBoarding(null);
     } catch (err) {
-      alert('Failed to update boarding: ' + err.message);
+      alert('Failed to update item: ' + err.message);
+    }
+  };
+
+  const handleSaveReview = async (id) => {
+    try {
+      await api.editReviewByAdmin(id, editingReviewComment);
+      setAllReviews(allReviews.map(r => r.id === id ? { ...r, comment: editingReviewComment } : r));
+      setEditingReviewId(null);
+    } catch (err) {
+      alert('Failed to update review: ' + err.message);
     }
   };
 
@@ -108,15 +187,17 @@ export default function AdminDashboard({ user }) {
     });
   };
 
-  const filteredBoardings = statusFilter === 'all'
-    ? boardings
-    : boardings.filter(b => b.status === statusFilter);
+  const activeItems = activeTab === 'boardings' ? boardings : activeTab === 'vehicles' ? vehicles : activeTab === 'lands' ? lands : [];
+
+  const filteredItems = statusFilter === 'all'
+    ? activeItems
+    : activeItems.filter(item => item.status === statusFilter);
 
   const counts = {
-    all: boardings.length,
-    pending: boardings.filter(b => b.status === 'pending').length,
-    approved: boardings.filter(b => b.status === 'approved').length,
-    rejected: boardings.filter(b => b.status === 'rejected').length,
+    all: activeItems.length,
+    pending: activeItems.filter(item => item.status === 'pending').length,
+    approved: activeItems.filter(item => item.status === 'approved').length,
+    rejected: activeItems.filter(item => item.status === 'rejected').length,
   };
 
   if (user?.role !== 'admin') {
@@ -543,16 +624,39 @@ export default function AdminDashboard({ user }) {
             <span className="tab-count">{counts.all}</span>
           </button>
           <button
+            className={`admin-tab${activeTab === 'vehicles' ? ' active' : ''}`}
+            onClick={() => { setActiveTab('vehicles'); setError(''); setStatusFilter('all'); }}
+          >
+            <MapPin size={18} />
+            Vehicles
+            {activeTab === 'vehicles' && <span className="tab-count">{counts.all}</span>}
+          </button>
+          <button
+            className={`admin-tab${activeTab === 'lands' ? ' active' : ''}`}
+            onClick={() => { setActiveTab('lands'); setError(''); setStatusFilter('all'); }}
+          >
+            <MapPin size={18} />
+            Lands
+            {activeTab === 'lands' && <span className="tab-count">{counts.all}</span>}
+          </button>
+          <button
             className={`admin-tab${activeTab === 'users' ? ' active' : ''}`}
             onClick={() => { setActiveTab('users'); setError(''); }}
           >
             <Users size={18} />
             Users
           </button>
+          <button
+            className={`admin-tab${activeTab === 'reviews' ? ' active' : ''}`}
+            onClick={() => { setActiveTab('reviews'); setError(''); }}
+          >
+            <MessageSquare size={18} />
+            Reviews
+          </button>
         </div>
 
-        {/* ============ BOARDINGS TAB ============ */}
-        {activeTab === 'boardings' && (
+        {/* ============ ITEMS TAB ============ */}
+        {['boardings', 'vehicles', 'lands'].includes(activeTab) && (
           <>
             {/* Stats */}
             <div className="stats-row">
@@ -603,25 +707,25 @@ export default function AdminDashboard({ user }) {
               ))}
             </div>
 
-            {/* Boardings Table */}
+            {/* Items Table */}
             <div className="admin-card">
               <div className="admin-table-wrap">
                 {loading ? (
                   <div className="p-12 text-center" style={{ color: 'var(--muted-foreground)' }}>
                     <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-                    Loading boardings...
+                    Loading {activeTab}...
                   </div>
-                ) : filteredBoardings.length === 0 ? (
+                ) : filteredItems.length === 0 ? (
                   <div className="empty-state">
                     <div className="empty-state-icon"><Home size={24} /></div>
-                    <p style={{ fontWeight: 600 }}>No {statusFilter !== 'all' ? statusFilter : ''} boardings found</p>
-                    <p style={{ fontSize: '0.85rem', marginTop: 4 }}>Boardings will appear here when users upload them.</p>
+                    <p style={{ fontWeight: 600 }}>No {statusFilter !== 'all' ? statusFilter : ''} {activeTab} found</p>
+                    <p style={{ fontSize: '0.85rem', marginTop: 4 }}>{activeTab} will appear here when users upload them.</p>
                   </div>
                 ) : (
                   <table className="admin-table">
                     <thead>
                       <tr>
-                        <th>Boarding</th>
+                        <th style={{ textTransform: 'capitalize' }}>{activeTab.slice(0, -1)}</th>
                         <th>City</th>
                         <th>Price</th>
                         <th>Owner</th>
@@ -631,7 +735,7 @@ export default function AdminDashboard({ user }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredBoardings.map(b => (
+                      {filteredItems.map(b => (
                         <tr key={b.id}>
                           <td>
                             <div className="boarding-info">
@@ -715,7 +819,7 @@ export default function AdminDashboard({ user }) {
                               </button>
                               <button
                                 className="action-btn delete"
-                                onClick={() => handleDeleteBoarding(b.id, b.title)}
+                                onClick={() => handleDeleteItem(b.id, b.title)}
                                 title="Delete"
                               >
                                 <Trash2 size={18} />
@@ -805,6 +909,90 @@ export default function AdminDashboard({ user }) {
             </div>
           </div>
         )}
+
+        {/* ============ REVIEWS TAB ============ */}
+        {activeTab === 'reviews' && (
+          <div className="admin-card">
+            <div className="admin-table-wrap">
+              {loading ? (
+                <div className="p-12 text-center" style={{ color: 'var(--muted-foreground)' }}>
+                  <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                  Loading reviews...
+                </div>
+              ) : (
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>User & Listing</th>
+                      <th>Rating</th>
+                      <th style={{ width: '40%' }}>Comment</th>
+                      <th>Date</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allReviews.map(r => (
+                      <tr key={r.id}>
+                        <td>
+                          <div style={{ fontWeight: 500 }}>{r.user_name}</div>
+                          <div className="boarding-meta capitalize">{r.listing_type} #{r.listing_id}</div>
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-1">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} size={14} className={i < r.rating ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300 dark:text-slate-700'} />
+                            ))}
+                          </div>
+                        </td>
+                        <td>
+                          {editingReviewId === r.id ? (
+                            <div className="flex flex-col gap-2">
+                              <textarea
+                                className="modal-input text-xs p-2 h-16 w-full"
+                                value={editingReviewComment}
+                                onChange={e => setEditingReviewComment(e.target.value)}
+                              />
+                              <div className="flex gap-2">
+                                <button className="modal-btn primary py-1 px-3 text-xs" onClick={() => handleSaveReview(r.id)}>Save</button>
+                                <button className="modal-btn secondary py-1 px-3 text-xs" onClick={() => setEditingReviewId(null)}>Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-sm whitespace-pre-wrap">{r.comment}</span>
+                          )}
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>
+                            {new Date(r.created_at).toLocaleDateString()}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            className="action-btn edit"
+                            onClick={() => {
+                              setEditingReviewId(r.id);
+                              setEditingReviewComment(r.comment);
+                            }}
+                            title="Edit Review"
+                          >
+                            <Edit3 size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {allReviews.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="text-center py-12" style={{ color: 'var(--muted-foreground)' }}>
+                          No reviews found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ============ EDIT MODAL ============ */}
@@ -814,7 +1002,7 @@ export default function AdminDashboard({ user }) {
             <button className="modal-close" onClick={() => setEditingBoarding(null)}>
               <X size={20} />
             </button>
-            <h2 className="modal-title">Edit Boarding</h2>
+            <h2 className="modal-title">Edit {activeTab.charAt(0).toUpperCase() + activeTab.slice(1, -1)}</h2>
 
             <div className="modal-field">
               <label className="modal-label">Title</label>

@@ -39,11 +39,11 @@ function toObjects(result) {
   });
 }
 
-// GET /api/boardings/cities/list
+// GET /api/lands/cities/list
 router.get('/cities/list', (req, res) => {
   try {
     const db = getDB();
-    const result = db.exec('SELECT DISTINCT city FROM boardings ORDER BY city');
+    const result = db.exec('SELECT DISTINCT city FROM lands ORDER BY city');
     const cities = toObjects(result).map(c => c.city);
     res.json(cities);
   } catch (err) {
@@ -51,12 +51,12 @@ router.get('/cities/list', (req, res) => {
   }
 });
 
-// GET /api/boardings
+// GET /api/lands
 router.get('/', (req, res) => {
   try {
     const db = getDB();
     const { city, search } = req.query;
-    let query = `SELECT b.*, u.name as owner_name FROM boardings b JOIN users u ON b.user_id = u.id WHERE b.status = 'approved'`;
+    let query = `SELECT b.*, u.name as owner_name FROM lands b JOIN users u ON b.user_id = u.id WHERE b.status = 'approved'`;
     const params = [];
 
     if (city) {
@@ -71,25 +71,25 @@ router.get('/', (req, res) => {
     query += ' ORDER BY b.created_at DESC';
 
     const result = db.exec(query, params);
-    const boardings = toObjects(result);
+    const lands = toObjects(result);
 
     // Attach images
-    const enriched = boardings.map(b => {
-      const imgResult = db.exec('SELECT filename FROM boarding_images WHERE boarding_id = ?', [b.id]);
+    const enriched = lands.map(b => {
+      const imgResult = db.exec('SELECT filename FROM land_images WHERE land_id = ?', [b.id]);
       const images = toObjects(imgResult).map(img => `/uploads/${img.filename}`);
       return { ...b, images };
     });
 
     res.json(enriched);
   } catch (err) {
-    console.error('List boardings error:', err);
-    res.status(500).json({ error: 'Failed to fetch boardings' });
+    console.error('List lands error:', err);
+    res.status(500).json({ error: 'Failed to fetch lands' });
   }
 });
 
 // ===== ADMIN ROUTES (must be before /:id) =====
 
-// GET /api/boardings/admin/all — get all boardings (any status)
+// GET /api/lands/admin/all — get all lands (any status)
 router.get('/admin/all', authMiddleware, (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -98,31 +98,31 @@ router.get('/admin/all', authMiddleware, (req, res) => {
     const db = getDB();
     const result = db.exec(
       `SELECT b.*, u.name as owner_name, u.email as owner_email
-       FROM boardings b JOIN users u ON b.user_id = u.id
+       FROM lands b JOIN users u ON b.user_id = u.id
        ORDER BY b.created_at DESC`
     );
-    const boardings = toObjects(result);
+    const lands = toObjects(result);
 
-    const enriched = boardings.map(b => {
-      const imgResult = db.exec('SELECT filename FROM boarding_images WHERE boarding_id = ?', [b.id]);
+    const enriched = lands.map(b => {
+      const imgResult = db.exec('SELECT filename FROM land_images WHERE land_id = ?', [b.id]);
       const images = toObjects(imgResult).map(img => `/uploads/${img.filename}`);
       return { ...b, images };
     });
 
     res.json(enriched);
   } catch (err) {
-    console.error('Admin list boardings error:', err);
-    res.status(500).json({ error: 'Failed to fetch boardings' });
+    console.error('Admin list lands error:', err);
+    res.status(500).json({ error: 'Failed to fetch lands' });
   }
 });
 
-// GET /api/boardings/my-listings
+// GET /api/lands/my-listings
 router.get('/my-listings', authMiddleware, (req, res) => {
   try {
     const db = getDB();
     const result = db.exec(
       `SELECT b.*, u.name as owner_name, u.email as owner_email 
-       FROM boardings b 
+       FROM lands b 
        JOIN users u ON b.user_id = u.id 
        WHERE b.user_id = ?
        ORDER BY b.created_at DESC`,
@@ -130,45 +130,45 @@ router.get('/my-listings', authMiddleware, (req, res) => {
     );
 
     if (result.length === 0) return res.json([]);
-    const boardings = toObjects(result);
+    const lands = toObjects(result);
 
-    const boardingsWithImages = boardings.map(b => {
-      const imgResult = db.exec('SELECT filename FROM boarding_images WHERE boarding_id = ?', [b.id]);
+    const landsWithImages = lands.map(b => {
+      const imgResult = db.exec('SELECT filename FROM land_images WHERE land_id = ?', [b.id]);
       b.images = imgResult.length > 0 ? toObjects(imgResult).map(img => `/uploads/${img.filename}`) : [];
       return b;
     });
 
-    res.json(boardingsWithImages);
+    res.json(landsWithImages);
   } catch (err) {
     console.error('Get my listings error:', err);
     res.status(500).json({ error: 'Failed to fetch your listings' });
   }
 });
 
-// GET /api/boardings/:id
+// GET /api/lands/:id
 router.get('/:id', (req, res) => {
   try {
     const db = getDB();
     const result = db.exec(
       `SELECT b.*, u.name as owner_name, u.email as owner_email
-       FROM boardings b JOIN users u ON b.user_id = u.id WHERE b.id = ?`,
+       FROM lands b JOIN users u ON b.user_id = u.id WHERE b.id = ?`,
       [parseInt(req.params.id)]
     );
     const rows = toObjects(result);
-    if (rows.length === 0) return res.status(404).json({ error: 'Boarding not found' });
+    if (rows.length === 0) return res.status(404).json({ error: 'Land not found' });
 
-    const boarding = rows[0];
-    const imgResult = db.exec('SELECT filename FROM boarding_images WHERE boarding_id = ?', [boarding.id]);
-    boarding.images = toObjects(imgResult).map(img => `/uploads/${img.filename}`);
+    const land = rows[0];
+    const imgResult = db.exec('SELECT filename FROM land_images WHERE land_id = ?', [land.id]);
+    land.images = toObjects(imgResult).map(img => `/uploads/${img.filename}`);
 
-    res.json(boarding);
+    res.json(land);
   } catch (err) {
-    console.error('Get boarding error:', err);
-    res.status(500).json({ error: 'Failed to fetch boarding' });
+    console.error('Get land error:', err);
+    res.status(500).json({ error: 'Failed to fetch land' });
   }
 });
 
-// POST /api/boardings
+// POST /api/lands
 router.post('/', authMiddleware, upload.fields([{ name: 'images', maxCount: 10 }, { name: 'receipt', maxCount: 1 }]), (req, res) => {
   try {
     const db = getDB();
@@ -181,7 +181,7 @@ router.post('/', authMiddleware, upload.fields([{ name: 'images', maxCount: 10 }
     const receiptFile = req.files && req.files['receipt'] ? req.files['receipt'][0].filename : null;
 
     db.run(
-      `INSERT INTO boardings (user_id, title, description, address, city, price, contact, latitude, longitude, gender, payment_receipt)
+      `INSERT INTO lands (user_id, title, description, address, city, price, contact, latitude, longitude, gender, payment_receipt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [req.user.id, title, description || null, address, city,
        parseFloat(price), contact,
@@ -191,12 +191,12 @@ router.post('/', authMiddleware, upload.fields([{ name: 'images', maxCount: 10 }
     );
 
     const idResult = db.exec('SELECT last_insert_rowid() as id');
-    const boardingId = idResult[0].values[0][0];
+    const landId = idResult[0].values[0][0];
 
     const images = [];
     if (req.files && req.files['images']) {
       for (const file of req.files['images']) {
-        db.run('INSERT INTO boarding_images (boarding_id, filename) VALUES (?, ?)', [boardingId, file.filename]);
+        db.run('INSERT INTO land_images (land_id, filename) VALUES (?, ?)', [landId, file.filename]);
         images.push(`/uploads/${file.filename}`);
       }
     }
@@ -206,48 +206,48 @@ router.post('/', authMiddleware, upload.fields([{ name: 'images', maxCount: 10 }
     const admins = toObjects(adminResult);
     for (const admin of admins) {
       db.run('INSERT INTO notifications (user_id, message, type, link) VALUES (?, ?, ?, ?)', 
-        [admin.id, `New boarding listing "${title}" pending approval`, 'system', `/boardings/${boardingId}`]);
+        [admin.id, `New land listing "${title}" pending approval`, 'system', `/lands/${landId}`]);
     }
 
     saveDB();
 
     res.status(201).json({
-      id: boardingId, title, description, address, city,
+      id: landId, title, description, address, city,
       price: parseFloat(price), contact, latitude, longitude, gender: gender || 'any',
       images, user_id: req.user.id, owner_name: req.user.name
     });
   } catch (err) {
-    console.error('Create boarding error:', err);
-    res.status(500).json({ error: 'Failed to create boarding' });
+    console.error('Create land error:', err);
+    res.status(500).json({ error: 'Failed to create land' });
   }
 });
 
-// DELETE /api/boardings/:id (owner or admin)
+// DELETE /api/lands/:id (owner or admin)
 router.delete('/:id', authMiddleware, (req, res) => {
   try {
     const db = getDB();
-    const result = db.exec('SELECT * FROM boardings WHERE id = ?', [parseInt(req.params.id)]);
+    const result = db.exec('SELECT * FROM lands WHERE id = ?', [parseInt(req.params.id)]);
     const rows = toObjects(result);
-    if (rows.length === 0) return res.status(404).json({ error: 'Boarding not found' });
+    if (rows.length === 0) return res.status(404).json({ error: 'Land not found' });
     // Allow owner or admin to delete
     if (rows[0].user_id !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    db.run('DELETE FROM boarding_images WHERE boarding_id = ?', [parseInt(req.params.id)]);
-    db.run('DELETE FROM boardings WHERE id = ?', [parseInt(req.params.id)]);
+    db.run('DELETE FROM land_images WHERE land_id = ?', [parseInt(req.params.id)]);
+    db.run('DELETE FROM lands WHERE id = ?', [parseInt(req.params.id)]);
     saveDB();
 
-    res.json({ message: 'Boarding deleted successfully' });
+    res.json({ message: 'Land deleted successfully' });
   } catch (err) {
-    console.error('Delete boarding error:', err);
-    res.status(500).json({ error: 'Failed to delete boarding' });
+    console.error('Delete land error:', err);
+    res.status(500).json({ error: 'Failed to delete land' });
   }
 });
 
 
 
-// PATCH /api/boardings/:id/status — approve or reject a boarding
+// PATCH /api/lands/:id/status — approve or reject a land
 router.patch('/:id/status', authMiddleware, (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -259,36 +259,36 @@ router.patch('/:id/status', authMiddleware, (req, res) => {
     }
     const db = getDB();
     const id = parseInt(req.params.id);
-    const existing = db.exec('SELECT id, user_id, title FROM boardings WHERE id = ?', [id]);
+    const existing = db.exec('SELECT id, user_id, title FROM lands WHERE id = ?', [id]);
     const rows = toObjects(existing);
     if (rows.length === 0) {
-      return res.status(404).json({ error: 'Boarding not found' });
+      return res.status(404).json({ error: 'Land not found' });
     }
-    const boarding = rows[0];
+    const land = rows[0];
 
-    db.run('UPDATE boardings SET status = ? WHERE id = ?', [status, id]);
+    db.run('UPDATE lands SET status = ? WHERE id = ?', [status, id]);
     
     // Notify the listing owner
     db.run('INSERT INTO notifications (user_id, message, type, link) VALUES (?, ?, ?, ?)', 
-      [boarding.user_id, `Your boarding listing "${boarding.title}" was ${status}`, 'status_update', `/boardings/${id}`]);
+      [land.user_id, `Your land listing "${land.title}" was ${status}`, 'status_update', `/lands/${id}`]);
 
     saveDB();
-    res.json({ message: `Boarding ${status} successfully` });
+    res.json({ message: `Land ${status} successfully` });
   } catch (err) {
     console.error('Update status error:', err);
-    res.status(500).json({ error: 'Failed to update boarding status' });
+    res.status(500).json({ error: 'Failed to update land status' });
   }
 });
 
-// PUT /api/boardings/:id — owner or admin update a boarding
+// PUT /api/lands/:id — owner or admin update a land
 router.put('/:id', authMiddleware, (req, res) => {
   try {
     const db = getDB();
     const id = parseInt(req.params.id);
-    const existing = db.exec('SELECT * FROM boardings WHERE id = ?', [id]);
+    const existing = db.exec('SELECT * FROM lands WHERE id = ?', [id]);
     const rows = toObjects(existing);
     if (rows.length === 0) {
-      return res.status(404).json({ error: 'Boarding not found' });
+      return res.status(404).json({ error: 'Land not found' });
     }
     // Allow owner or admin to update
     if (rows[0].user_id !== req.user.id && req.user.role !== 'admin') {
@@ -296,14 +296,14 @@ router.put('/:id', authMiddleware, (req, res) => {
     }
     const { title, description, address, city, price, contact, gender } = req.body;
     db.run(
-      `UPDATE boardings SET title = ?, description = ?, address = ?, city = ?, price = ?, contact = ?, gender = ? WHERE id = ?`,
+      `UPDATE lands SET title = ?, description = ?, address = ?, city = ?, price = ?, contact = ?, gender = ? WHERE id = ?`,
       [title, description || null, address, city, parseFloat(price), contact, gender || 'any', id]
     );
     saveDB();
-    res.json({ message: 'Boarding updated successfully' });
+    res.json({ message: 'Land updated successfully' });
   } catch (err) {
-    console.error('Update boarding error:', err);
-    res.status(500).json({ error: 'Failed to update boarding' });
+    console.error('Update land error:', err);
+    res.status(500).json({ error: 'Failed to update land' });
   }
 });
 

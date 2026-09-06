@@ -7,12 +7,28 @@ import AdminDashboard from './pages/AdminDashboard';
 import MyListings from './pages/MyListings';
 import ResetPassword from './pages/ResetPassword';
 import MapMode from './components/MapMode';
-import { MapPin, Phone, Eye, LayoutGrid, Map, ChevronLeft, ChevronRight, X, Navigation2 } from 'lucide-react';
+import CityPicker from './components/CityPicker';
+import { MapPin, Phone, Eye, LayoutGrid, Map, ChevronLeft, ChevronRight, X, Navigation2, SlidersHorizontal, ChevronDown, Star, Edit2, Check, MessageSquare } from 'lucide-react';
 import { api } from './api';
+import { VEHICLE_TYPE_LIST } from './data/sriLankaData';
+import { NotificationProvider } from './context/NotificationContext';
 
-function BoardingDetailModal({ boarding, onClose }) {
+function BoardingDetailModal({ boarding, onClose, user }) {
   const [imgIdx, setImgIdx] = useState(0);
   const images = boarding.images || [];
+
+  // Review states
+  const [reviews, setReviews] = useState([]);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [editingComment, setEditingComment] = useState('');
+
+  useEffect(() => {
+    api.getReviews(boarding.category, boarding.id)
+      .then(data => setReviews(data))
+      .catch(err => console.error("Failed to load reviews", err));
+  }, [boarding.category, boarding.id]);
 
   const handleWhatsApp = () => {
     const numericContact = boarding.contact.replace(/\D/g, '');
@@ -23,9 +39,37 @@ function BoardingDetailModal({ boarding, onClose }) {
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${boarding.latitude},${boarding.longitude}`, '_blank');
   };
 
+  const handleAddReview = async () => {
+    if (!comment.trim()) return;
+    try {
+      await api.addReview({
+        listing_id: boarding.id,
+        listing_type: boarding.category,
+        rating,
+        comment
+      });
+      setComment('');
+      const data = await api.getReviews(boarding.category, boarding.id);
+      setReviews(data);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleEditReview = async (id) => {
+    try {
+      await api.editReviewByAdmin(id, editingComment);
+      setEditingReviewId(null);
+      const data = await api.getReviews(boarding.category, boarding.id);
+      setReviews(data);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[2000] flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-slate-900 border border-white/10 w-full max-w-2xl rounded-none overflow-hidden shadow-2xl flex flex-col md:flex-row h-[80vh] md:h-[500px]">
+    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[2000] flex items-center justify-center p-4 detail-modal-overlay">
+      <div className="bg-slate-900 border border-white/10 w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row h-[85vh] md:h-[600px] detail-modal-card">
         {/* Left Side: Image Gallery */}
         <div className="w-full md:w-1/2 relative bg-black/40 h-[220px] md:h-full flex flex-col justify-between flex-shrink-0">
           <div className="absolute inset-0">
@@ -79,8 +123,12 @@ function BoardingDetailModal({ boarding, onClose }) {
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
             <div className="flex justify-between items-start mb-4">
               <div className="min-w-0 flex-1 pr-2">
-                <span className="bg-primary/20 text-primary px-3 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase">
-                  {boarding.gender === 'girls' ? 'Girls Only' : boarding.gender === 'boys' ? 'Boys Only' : 'Any Gender'}
+                <span className="bg-primary/10 text-primary px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                  {boarding.category === 'boarding' 
+                    ? (boarding.gender === 'girls' ? 'Girls Only' : boarding.gender === 'boys' ? 'Boys Only' : 'Any Gender')
+                    : boarding.category === 'vehicle' 
+                      ? boarding.vehicle_type 
+                      : 'Land'}
                 </span>
                 <h2 className="text-xl md:text-2xl font-black text-white mt-3 leading-tight break-words">{boarding.title}</h2>
                 <div className="flex items-center gap-1.5 text-slate-400 text-xs mt-2 break-words">
@@ -136,6 +184,107 @@ function BoardingDetailModal({ boarding, onClose }) {
               </button>
             </div>
           </div>
+
+          {/* Reviews Section */}
+          <div className="border-t border-white/5 pt-6 mt-6 flex-shrink-0">
+            <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+              <MessageSquare size={18} className="text-primary" /> 
+              Reviews ({reviews.length})
+            </h3>
+            
+            {user && (
+              <div className="bg-white/5 p-5 rounded-2xl border border-white/10 mb-6" style={{ animation: 'fadeInUp 0.4s ease forwards' }}>
+                <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-3">Your Rating</div>
+                <div className="flex items-center gap-2 mb-4">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <Star 
+                      key={star}
+                      size={22}
+                      className={`review-star ${rating >= star ? 'text-yellow-400 fill-yellow-400 active' : 'text-slate-600 hover:text-slate-400'}`}
+                      onClick={() => setRating(star)}
+                    />
+                  ))}
+                  <span className="text-slate-500 text-xs ml-2 font-medium">{rating}/5</span>
+                </div>
+                <textarea 
+                  value={comment}
+                  onChange={e => setComment(e.target.value)}
+                  placeholder="Share your experience with this listing..."
+                  className="w-full bg-slate-950/50 border border-white/10 rounded-xl p-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 focus:shadow-[0_0_16px_rgba(212,168,50,0.10)] resize-none h-24 mb-4 transition-all"
+                />
+                <button 
+                  onClick={handleAddReview}
+                  disabled={!comment.trim()}
+                  className="bg-gradient-to-r from-primary to-primary-hover disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 py-2.5 px-5 rounded-xl text-xs font-extrabold transition-all hover:shadow-[0_4px_20px_rgba(212,168,50,0.35)] hover:translate-y-[-1px]"
+                >
+                  ✨ Submit Review
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3">
+              {reviews.map((review, rIdx) => (
+                <div key={review.id} className="review-card" style={{ animation: `fadeInUp 0.4s cubic-bezier(0.16,1,0.3,1) ${rIdx * 0.08}s forwards`, opacity: 0 }}>
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <div className="text-white text-sm font-bold">{review.user_name}</div>
+                      <div className="flex items-center gap-1 mt-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} size={12} className={i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-slate-600'} />
+                        ))}
+                        <span className="text-slate-500 text-[10px] ml-2">
+                          {new Date(review.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    {user?.role === 'admin' && (
+                      <button 
+                        onClick={() => {
+                          setEditingReviewId(review.id);
+                          setEditingComment(review.comment);
+                        }}
+                        className="text-slate-400 hover:text-primary transition-colors p-1"
+                        title="Edit Review (Admin)"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {editingReviewId === review.id ? (
+                    <div className="mt-3">
+                      <textarea 
+                        value={editingComment}
+                        onChange={e => setEditingComment(e.target.value)}
+                        className="w-full bg-slate-950/80 border border-white/20 rounded p-2 text-sm text-white focus:outline-none focus:border-primary resize-none mb-2"
+                      />
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleEditReview(review.id)}
+                          className="bg-primary text-white py-1 px-3 rounded text-xs font-bold flex items-center gap-1"
+                        >
+                          <Check size={12} /> Save
+                        </button>
+                        <button 
+                          onClick={() => setEditingReviewId(null)}
+                          className="bg-white/10 text-white py-1 px-3 rounded text-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-slate-300 text-sm mt-2">{review.comment}</p>
+                  )}
+                </div>
+              ))}
+              {reviews.length === 0 && (
+                <div className="text-center text-slate-500 py-6 text-sm">
+                  No reviews yet. Be the first to leave one!
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -148,26 +297,53 @@ export default function App() {
     return 'home';
   });
   const [user, setUser] = useState(null);
-  const [boardings, setBoardings] = useState([]);
+  const [boardings, setBoardings] = useState([]); // This will hold all items
   const [filters, setFilters] = useState({ searchTerm: '', city: '' });
+  const [categoryFilter, setCategoryFilter] = useState({ boarding: true, vehicle: true, land: true });
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [selectedBoarding, setSelectedBoarding] = useState(null);
+  // Advanced filters
+  const [advFilters, setAdvFilters] = useState({
+    priceMin: '', priceMax: '',
+    vehicleType: '',
+    filterCity: '',
+  });
+  const [showAdvFilters, setShowAdvFilters] = useState(false);
 
   // Check if user is already logged in
   useEffect(() => {
     api.getMe().then(u => { if (u) setUser(u); });
   }, []);
 
-  // Fetch boardings from backend
+  // Fetch all items from backend
   useEffect(() => {
     setLoading(true);
-    api.getBoardings(filters.city, filters.searchTerm)
-      .then(data => setBoardings(data))
-      .catch(() => setBoardings([]))
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.getBoardings(filters.city, filters.searchTerm).catch(() => []),
+      api.getVehicles(filters.city, filters.searchTerm).catch(() => []),
+      api.getLands(filters.city, filters.searchTerm).catch(() => [])
+    ]).then(([b, v, l]) => {
+      const mappedB = b.map(x => ({ ...x, category: 'boarding' }));
+      const mappedV = v.map(x => ({ ...x, category: 'vehicle' }));
+      const mappedL = l.map(x => ({ ...x, category: 'land' }));
+      setBoardings([...mappedB, ...mappedV, ...mappedL]);
+    }).finally(() => setLoading(false));
   }, [filters]);
+
+  const filteredBoardings = boardings.filter(b => {
+    if (!categoryFilter[b.category]) return false;
+    // Price filter
+    const price = Number(b.price);
+    if (advFilters.priceMin && price < Number(advFilters.priceMin)) return false;
+    if (advFilters.priceMax && price > Number(advFilters.priceMax)) return false;
+    // Vehicle type filter (only applies to vehicles)
+    if (advFilters.vehicleType && b.category === 'vehicle' && b.vehicle_type !== advFilters.vehicleType) return false;
+    // City filter (from advanced panel, overrides search bar city)
+    if (advFilters.filterCity && b.city?.toLowerCase() !== advFilters.filterCity.toLowerCase()) return false;
+    return true;
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -195,7 +371,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen">
+    <NotificationProvider user={user}>
+      <div className="min-h-screen">
       <Header
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
@@ -208,252 +385,347 @@ export default function App() {
       <main className="w-full">
         {currentPage === 'home' && (
           <>
-            <Home setFilters={setFilters} boardings={boardings}>
-              <div id="listings" className="bg-background text-foreground w-full py-16">
-              <section className="max-w-[1400px] mx-auto w-full px-6">
-                <div className="flex flex-col items-center justify-center mb-12">
-                  <div className="text-center mb-6">
-                    <h3 className="text-3xl font-bold">Featured Boardings</h3>
-                    <div className="text-sm font-semibold text-primary mt-2">{boardings.length} results found</div>
+            <Home setFilters={setFilters} boardings={boardings} setCategoryFilter={setCategoryFilter} categoryFilter={categoryFilter}>
+              <div id="listings" style={{ background: 'var(--color-background)', color: 'var(--color-foreground)', width:'100%', paddingTop:'80px', paddingBottom:'80px' }}>
+              <section style={{ maxWidth:'1400px', margin:'0 auto', width:'100%', padding:'0 24px' }}>
+
+                {/* Section Header */}
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginBottom:'48px' }}>
+                  <div style={{ textAlign:'center', marginBottom:'8px' }}>
+                    <h3 style={{ fontSize:'2rem', fontWeight:800, color:'var(--color-foreground)', letterSpacing:'-0.02em' }}>
+                      Explore All <span style={{ color:'#D4A832' }}>Listings</span>
+                    </h3>
+                    <p style={{ fontSize:'0.9rem', color:'var(--color-muted-foreground)', marginTop:'6px' }}>
+                      {filteredBoardings.length} listings found
+                    </p>
                   </div>
-                  
-                  {/* ── Premium View Toggle ── */}
-                  <div className="view-toggle-container" style={{ marginTop: '16px' }}>
-                    <style>{`
-                      .view-toggle-container {
-                        display: flex;
-                        justify-content: center;
-                      }
-                      .view-toggle-track {
-                        position: relative;
-                        display: flex;
-                        align-items: center;
-                        gap: 4px;
-                        padding: 5px;
-                        border-radius: 16px;
-                        background: rgba(15, 23, 42, 0.55);
-                        backdrop-filter: blur(16px);
-                        -webkit-backdrop-filter: blur(16px);
-                        border: 1px solid rgba(255, 255, 255, 0.08);
-                        box-shadow:
-                          0 4px 24px rgba(0, 0, 0, 0.12),
-                          0 1px 3px rgba(0, 0, 0, 0.08),
-                          inset 0 1px 0 rgba(255, 255, 255, 0.04);
-                      }
-                      /* sliding active pill */
-                      .view-toggle-track::before {
-                        content: '';
-                        position: absolute;
-                        top: 5px;
-                        bottom: 5px;
-                        width: calc(50% - 7px);
-                        border-radius: 12px;
-                        background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
-                        box-shadow:
-                          0 4px 16px rgba(99, 102, 241, 0.4),
-                          0 0 0 1px rgba(99, 102, 241, 0.15) inset,
-                          0 1px 0 rgba(255, 255, 255, 0.1) inset;
-                        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-                        z-index: 0;
-                      }
-                      .view-toggle-track.mode-list::before {
-                        transform: translateX(0);
-                        left: 5px;
-                      }
-                      .view-toggle-track.mode-map::before {
-                        transform: translateX(calc(100% + 4px));
-                        left: 5px;
-                      }
 
-                      .view-toggle-btn {
-                        position: relative;
-                        z-index: 1;
-                        display: flex;
-                        align-items: center;
-                        gap: 9px;
-                        padding: 10px 24px;
-                        border-radius: 12px;
-                        border: none;
-                        background: transparent;
-                        cursor: pointer;
-                        font-size: 0.85rem;
-                        font-weight: 600;
-                        letter-spacing: 0.01em;
-                        white-space: nowrap;
-                        color: rgba(148, 163, 184, 0.75);
-                        transition: color 0.3s ease;
-                        user-select: none;
-                      }
-                      .view-toggle-btn:hover {
-                        color: rgba(203, 213, 225, 0.95);
-                      }
-                      .view-toggle-btn.active {
-                        color: #fff;
-                      }
-                      .view-toggle-btn:active {
-                        transform: scale(0.97);
-                      }
-
-                      /* icon wrapper */
-                      .vt-icon {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        width: 28px;
-                        height: 28px;
-                        border-radius: 8px;
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                      }
-                      .view-toggle-btn:not(.active) .vt-icon {
-                        background: rgba(255, 255, 255, 0.04);
-                      }
-                      .view-toggle-btn.active .vt-icon {
-                        background: rgba(255, 255, 255, 0.15);
-                        box-shadow: 0 0 12px rgba(255, 255, 255, 0.08);
-                      }
-                      .view-toggle-btn:hover .vt-icon {
-                        transform: scale(1.12) rotate(-3deg);
-                      }
-
-                      /* live pulse dot on active */
-                      .vt-pulse {
-                        display: none;
-                        width: 6px;
-                        height: 6px;
-                        border-radius: 50%;
-                        background: #a5f3fc;
-                        box-shadow: 0 0 6px rgba(165, 243, 252, 0.6);
-                        animation: vtPulse 2s ease-in-out infinite;
-                      }
-                      .view-toggle-btn.active .vt-pulse {
-                        display: block;
-                      }
-                      @keyframes vtPulse {
-                        0%, 100% { opacity: 1; transform: scale(1); }
-                        50% { opacity: 0.5; transform: scale(1.6); }
-                      }
-
-                      /* responsive */
-                      @media (max-width: 480px) {
-                        .view-toggle-btn {
-                          padding: 9px 16px;
-                          font-size: 0.8rem;
-                          gap: 6px;
-                        }
-                        .vt-icon {
-                          width: 24px;
-                          height: 24px;
-                          border-radius: 6px;
-                        }
-                      }
-                    `}</style>
-
-                    <div className={`view-toggle-track mode-${viewMode}`}>
+                  {/* Category Filter Pills */}
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:'8px', justifyContent:'center', marginTop:'20px', marginBottom:'16px' }}>
+                    {[
+                      { key:'boarding', label:'🏠 Boardings', color:'#6366f1' },
+                      { key:'vehicle',  label:'🚗 Vehicles',  color:'#f59e0b' },
+                      { key:'land',     label:'🌿 Land',      color:'#10b981' },
+                    ].map(cat => (
                       <button
-                        onClick={() => setViewMode('list')}
-                        className={`view-toggle-btn${viewMode === 'list' ? ' active' : ''}`}
+                        key={cat.key}
+                        onClick={() => setCategoryFilter(prev => ({ ...prev, [cat.key]: !prev[cat.key] }))}
+                        style={{
+                          display:'flex', alignItems:'center', gap:'6px',
+                          padding:'8px 18px', borderRadius:'999px',
+                          border:`1.5px solid ${categoryFilter[cat.key] ? cat.color : 'rgba(240,244,255,0.10)'}`,
+                          background: categoryFilter[cat.key] ? `${cat.color}18` : 'transparent',
+                          color: categoryFilter[cat.key] ? cat.color : 'var(--color-muted-foreground)',
+                          fontSize:'13px', fontWeight:700, cursor:'pointer',
+                          transition:'all 0.2s',
+                          boxShadow: categoryFilter[cat.key] ? `0 0 16px ${cat.color}30` : 'none',
+                        }}
                       >
-                        <span className="vt-icon"><LayoutGrid size={16} strokeWidth={2.2} /></span>
-                        <span>List View</span>
-                        <span className="vt-pulse" />
+                        {cat.label}
                       </button>
-                      <button
-                        onClick={() => setViewMode('map')}
-                        className={`view-toggle-btn${viewMode === 'map' ? ' active' : ''}`}
-                      >
-                        <span className="vt-icon"><Map size={16} strokeWidth={2.2} /></span>
-                        <span>Map Mode</span>
-                        <span className="vt-pulse" />
-                      </button>
+                    ))}
+
+                    {/* Advanced filter toggle */}
+                    <button
+                      onClick={() => setShowAdvFilters(v => !v)}
+                      style={{
+                        display:'flex', alignItems:'center', gap:'6px',
+                        padding:'8px 18px', borderRadius:'999px',
+                        border: showAdvFilters ? '1.5px solid rgba(212,168,50,0.60)' : '1.5px solid rgba(240,244,255,0.10)',
+                        background: showAdvFilters ? 'rgba(212,168,50,0.12)' : 'transparent',
+                        color: showAdvFilters ? '#D4A832' : 'var(--color-muted-foreground)',
+                        fontSize:'13px', fontWeight:700, cursor:'pointer', transition:'all 0.2s',
+                      }}
+                    >
+                      <SlidersHorizontal size={14} />
+                      Filters
+                      <ChevronDown size={12} style={{ transition:'transform 0.2s', transform: showAdvFilters ? 'rotate(180deg)' : 'none' }} />
+                    </button>
+                  </div>
+
+                  {/* ── Advanced Filter Panel ── */}
+                  {showAdvFilters && (
+                    <div style={{
+                      width:'100%', maxWidth:'900px', marginBottom:'20px',
+                      background:'rgba(240,244,255,0.04)', border:'1px solid rgba(240,244,255,0.08)',
+                      borderRadius:'18px', padding:'24px',
+                      display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:'16px',
+                      animation:'fadeIn 0.25s ease',
+                    }}>
+                      {/* Price Min */}
+                      <div>
+                        <label style={{ display:'block', fontSize:'11px', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#D4A832', marginBottom:'8px' }}>
+                          Min Price (LKR)
+                        </label>
+                        <input
+                          type="number"
+                          value={advFilters.priceMin}
+                          onChange={e => setAdvFilters(p => ({ ...p, priceMin: e.target.value }))}
+                          placeholder="e.g. 5,000"
+                          style={{
+                            width:'100%', background:'rgba(240,244,255,0.06)',
+                            border:'1.5px solid rgba(240,244,255,0.10)', borderRadius:'10px',
+                            padding:'10px 14px', color:'var(--color-foreground)',
+                            fontSize:'0.88rem', outline:'none', fontFamily:'inherit',
+                          }}
+                          onFocus={e => e.target.style.borderColor='rgba(212,168,50,0.50)'}
+                          onBlur={e => e.target.style.borderColor='rgba(240,244,255,0.10)'}
+                        />
+                      </div>
+
+                      {/* Price Max */}
+                      <div>
+                        <label style={{ display:'block', fontSize:'11px', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#D4A832', marginBottom:'8px' }}>
+                          Max Price (LKR)
+                        </label>
+                        <input
+                          type="number"
+                          value={advFilters.priceMax}
+                          onChange={e => setAdvFilters(p => ({ ...p, priceMax: e.target.value }))}
+                          placeholder="e.g. 200,000"
+                          style={{
+                            width:'100%', background:'rgba(240,244,255,0.06)',
+                            border:'1.5px solid rgba(240,244,255,0.10)', borderRadius:'10px',
+                            padding:'10px 14px', color:'var(--color-foreground)',
+                            fontSize:'0.88rem', outline:'none', fontFamily:'inherit',
+                          }}
+                          onFocus={e => e.target.style.borderColor='rgba(212,168,50,0.50)'}
+                          onBlur={e => e.target.style.borderColor='rgba(240,244,255,0.10)'}
+                        />
+                      </div>
+
+                      {/* Vehicle Type (only visible when Vehicles is enabled) */}
+                      {categoryFilter.vehicle && (
+                        <div>
+                          <label style={{ display:'block', fontSize:'11px', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#D4A832', marginBottom:'8px' }}>
+                            Vehicle Type
+                          </label>
+                          <div style={{ position:'relative' }}>
+                            <select
+                              value={advFilters.vehicleType}
+                              onChange={e => setAdvFilters(p => ({ ...p, vehicleType: e.target.value }))}
+                              style={{
+                                width:'100%', background:'rgba(240,244,255,0.06)',
+                                border:'1.5px solid rgba(240,244,255,0.10)', borderRadius:'10px',
+                                padding:'10px 36px 10px 14px', color: advFilters.vehicleType ? 'var(--color-foreground)' : 'rgba(240,244,255,0.35)',
+                                fontSize:'0.88rem', outline:'none', fontFamily:'inherit',
+                                appearance:'none', cursor:'pointer',
+                              }}
+                            >
+                              <option value="">All Vehicle Types</option>
+                              {VEHICLE_TYPE_LIST.map(t => (
+                                <option key={t} value={t} style={{ background:'#0d1b35', color:'#F0F4FF' }}>{t}</option>
+                              ))}
+                            </select>
+                            <ChevronDown size={13} style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', color:'rgba(240,244,255,0.35)', pointerEvents:'none' }} />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* City filter */}
+                      <div>
+                        <label style={{ display:'block', fontSize:'11px', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#D4A832', marginBottom:'8px' }}>
+                          Location / City
+                        </label>
+                        <CityPicker
+                          value={advFilters.filterCity}
+                          onChange={city => setAdvFilters(p => ({ ...p, filterCity: city }))}
+                          placeholder="Type to search city…"
+                        />
+                      </div>
+
+                      {/* Reset */}
+                      <div style={{ display:'flex', alignItems:'flex-end' }}>
+                        <button
+                          onClick={() => setAdvFilters({ priceMin:'', priceMax:'', vehicleType:'', filterCity:'' })}
+                          style={{
+                            width:'100%', padding:'10px 14px', borderRadius:'10px',
+                            border:'1.5px solid rgba(240,244,255,0.15)',
+                            background:'transparent', color:'var(--color-muted-foreground)',
+                            fontSize:'0.88rem', fontWeight:600, cursor:'pointer', transition:'all 0.2s',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background='rgba(240,244,255,0.06)'; e.currentTarget.style.color='var(--color-foreground)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--color-muted-foreground)'; }}
+                        >
+                          Reset Filters
+                        </button>
+                      </div>
                     </div>
+                  )}
+
+                  {/* View Mode Toggle */}
+                  <style>{`
+                    .vt-track { position:relative; display:flex; align-items:center; gap:4px; padding:5px; border-radius:14px;
+                      background:rgba(240,244,255,0.05); border:1px solid rgba(240,244,255,0.08);
+                      box-shadow:0 4px 24px rgba(0,0,0,0.12); }
+                    .vt-track::before { content:''; position:absolute; top:5px; bottom:5px; width:calc(50% - 7px);
+                      border-radius:10px; background:linear-gradient(135deg,#D4A832,#A07820);
+                      box-shadow:0 4px 14px rgba(212,168,50,0.35); transition:transform 0.32s cubic-bezier(0.4,0,0.2,1); z-index:0; }
+                    .vt-track.mode-list::before { transform:translateX(0); left:5px; }
+                    .vt-track.mode-map::before  { transform:translateX(calc(100% + 4px)); left:5px; }
+                    .vt-btn { position:relative; z-index:1; display:flex; align-items:center; gap:8px; padding:9px 22px;
+                      border-radius:10px; border:none; background:transparent; cursor:pointer;
+                      font-size:0.84rem; font-weight:700; letter-spacing:0.01em; white-space:nowrap;
+                      color:rgba(240,244,255,0.50); transition:color 0.25s; }
+                    .vt-btn.active { color:#050D1A; }
+                    .vt-btn:not(.active):hover { color:rgba(240,244,255,0.80); }
+                    .vt-ico { display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:7px; }
+                    .vt-dot { width:6px; height:6px; border-radius:50%; background:#050D1A; opacity:0.7; animation:vdot 2s ease-in-out infinite; display:none; }
+                    .vt-btn.active .vt-dot { display:block; }
+                    @keyframes vdot { 0%,100%{opacity:0.7;transform:scale(1)} 50%{opacity:0.3;transform:scale(1.6)} }
+                  `}</style>
+                  <div className={`vt-track mode-${viewMode}`}>
+                    <button onClick={() => setViewMode('list')} className={`vt-btn${viewMode==='list'?' active':''}`}>
+                      <span className="vt-ico"><LayoutGrid size={15} strokeWidth={2.2} /></span>
+                      <span>List View</span>
+                      <span className="vt-dot" />
+                    </button>
+                    <button onClick={() => setViewMode('map')} className={`vt-btn${viewMode==='map'?' active':''}`}>
+                      <span className="vt-ico"><Map size={15} strokeWidth={2.2} /></span>
+                      <span>Map Mode</span>
+                      <span className="vt-dot" />
+                    </button>
                   </div>
                 </div>
 
+                {/* Content */}
                 {loading ? (
-                  <div className="text-center py-20">
-                    <div className="inline-block w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <p className="mt-4 text-foreground/40 font-semibold">Loading boardings...</p>
-                  </div>
-                ) : viewMode === 'map' ? (
-                  <MapMode boardings={boardings} onViewDetails={setSelectedBoarding} />
-                ) : (
-                  <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-10">
-                    {boardings.map(boarding => (
-                      <div key={boarding.id} className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-22px)] max-w-[420px] bg-card rounded-2xl overflow-hidden border border-border shadow-lg hover:shadow-2xl transition-all group animate-fade-in flex-grow-0">
-                        <div className="relative h-64 overflow-hidden bg-input">
-                          {boarding.images && boarding.images.length > 0 ? (
-                            <img
-                              src={boarding.images[0]}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                              alt={boarding.title}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-foreground/20">
-                              <span className="text-lg font-semibold">No Image</span>
-                            </div>
-                          )}
-                          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold shadow-sm text-black">
-                            {boarding.city}
-                          </div>
-                          <div className="absolute bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-2xl font-bold shadow-lg">
-                            LKR {Number(boarding.price).toLocaleString()}
-                          </div>
-                        </div>
-
-                        <div className="p-6">
-                          <h4 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">{boarding.title}</h4>
-                          <div className="flex items-center gap-2 text-foreground/60 text-sm mb-4">
-                            <MapPin size={16} />
-                            <span className="truncate">{boarding.address}</span>
-                          </div>
-
-                          <div className="flex items-center justify-between pt-4 border-t border-border">
-                            <div className="flex items-center gap-2 text-foreground/80 font-semibold">
-                              <Phone size={16} className="text-primary" />
-                              <span>{boarding.contact}</span>
-                            </div>
-                            <button 
-                              onClick={() => setSelectedBoarding(boarding)}
-                              className="bg-input p-2 rounded-full hover:bg-primary/10 hover:text-primary transition-all text-foreground"
-                            >
-                              <Eye size={20} />
-                            </button>
+                  <div style={{ display:'flex', flexWrap:'wrap', justifyContent:'center', gap:'24px' }}>
+                    {[1,2,3,4,5,6].map(i => (
+                      <div key={i} style={{ width:'100%', maxWidth:'380px', flexBasis:'calc(33.333% - 18px)', minWidth:'280px', borderRadius:'20px', overflow:'hidden', border:'1px solid rgba(240,244,255,0.05)', background:'var(--color-card)' }}>
+                        <div className="shimmer" style={{ height:'220px', borderRadius:0 }} />
+                        <div style={{ padding:'20px' }}>
+                          <div className="shimmer" style={{ height:'18px', width:'75%', marginBottom:'12px' }} />
+                          <div className="shimmer" style={{ height:'14px', width:'55%', marginBottom:'20px' }} />
+                          <div style={{ borderTop:'1px solid rgba(240,244,255,0.07)', paddingTop:'14px', display:'flex', justifyContent:'space-between' }}>
+                            <div className="shimmer" style={{ height:'14px', width:'35%' }} />
+                            <div className="shimmer" style={{ height:'32px', width:'70px', borderRadius:'10px' }} />
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                )}
+                ) : viewMode === 'map' ? (
+                  <MapMode
+                    boardings={filteredBoardings}
+                    onViewDetails={setSelectedBoarding}
+                    onDirection={(b) => window.open(`https://www.google.com/maps/dir/?api=1&destination=${b.latitude},${b.longitude}`, '_blank')}
+                    onWhatsApp={(b) => {
+                      const numericContact = b.contact.replace(/\D/g, '');
+                      window.open(`https://wa.me/${numericContact}`, '_blank');
+                    }}
+                  />
+                ) : filteredBoardings.length === 0 ? (
+                  <div style={{ textAlign:'center', padding:'80px 24px', background:'rgba(240,244,255,0.03)', borderRadius:'24px', border:'1px solid rgba(240,244,255,0.07)' }}>
+                    <div style={{ fontSize:'48px', marginBottom:'12px' }}>🔍</div>
+                    <p style={{ fontSize:'1.2rem', fontWeight:700, color:'var(--color-foreground)' }}>No listings found</p>
+                    <p style={{ fontSize:'0.9rem', color:'var(--color-muted-foreground)', marginTop:'8px' }}>Try adjusting your search or enabling more categories above.</p>
+                  </div>
+                ) : (
+                  <div style={{ display:'flex', flexWrap:'wrap', justifyContent:'center', gap:'24px' }}>
+                    {filteredBoardings.map(item => {
+                      const catColor = item.category === 'vehicle' ? '#f59e0b' : item.category === 'land' ? '#10b981' : '#6366f1';
+                      const catLabel = item.category === 'vehicle' ? '🚗 Vehicle' : item.category === 'land' ? '🌿 Land' : '🏠 Boarding';
+                      return (
+                        <div
+                          key={item.category + '-' + item.id}
+                          onClick={() => setSelectedBoarding(item)}
+                          className="listing-card"
+                          style={{
+                            width:'100%', maxWidth:'380px', flexShrink:0,
+                            flexBasis:'calc(33.333% - 18px)',
+                            minWidth:'280px',
+                          }}
+                        >
+                          {/* Image */}
+                          <div className="listing-card__img">
+                            {item.images && item.images.length > 0 ? (
+                              <img src={item.images[0]} alt={item.title} />
+                            ) : (
+                              <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--color-muted-foreground)', fontSize:'13px' }}>No Image</div>
+                            )}
+                            {/* Category badge */}
+                            <span style={{ position:'absolute', top:'12px', left:'12px', background:`${catColor}22`, border:`1px solid ${catColor}55`, color:catColor, padding:'5px 14px', borderRadius:'999px', fontSize:'11px', fontWeight:700, backdropFilter:'blur(12px)', zIndex:2, letterSpacing:'0.02em' }}>
+                              {catLabel}
+                            </span>
+                            {/* Price badge */}
+                            <span style={{ position:'absolute', bottom:'12px', right:'12px', background:'linear-gradient(135deg,#D4A832,#A07820)', color:'#050D1A', padding:'7px 16px', borderRadius:'12px', fontSize:'13px', fontWeight:800, boxShadow:'0 4px 20px rgba(212,168,50,0.40)', zIndex:2, letterSpacing:'-0.01em' }}>
+                              LKR {Number(item.price).toLocaleString()}
+                            </span>
+                            {/* City */}
+                            <span style={{ position:'absolute', top:'12px', right:'12px', background:'rgba(5,13,26,0.80)', color:'rgba(240,244,255,0.90)', padding:'5px 12px', borderRadius:'10px', fontSize:'11px', fontWeight:600, backdropFilter:'blur(12px)', zIndex:2 }}>
+                              {item.city}
+                            </span>
+                            {/* Image count badge */}
+                            {item.images && item.images.length > 1 && (
+                              <span style={{ position:'absolute', bottom:'12px', left:'12px', background:'rgba(5,13,26,0.80)', color:'rgba(240,244,255,0.85)', padding:'4px 10px', borderRadius:'8px', fontSize:'10px', fontWeight:700, backdropFilter:'blur(8px)', zIndex:2, display:'flex', alignItems:'center', gap:'4px' }}>
+                                📷 {item.images.length}
+                              </span>
+                            )}
+                          </div>
 
-                {!loading && boardings.length === 0 && (
-                  <div className="text-center py-20 bg-input rounded-[3rem] border-2 border-dashed border-border">
-                    <p className="text-foreground/40 font-semibold">No boardings found. Be the first to upload one!</p>
+                          {/* Body */}
+                          <div style={{ padding:'20px' }}>
+                            <h4 style={{ fontSize:'1.02rem', fontWeight:700, color:'var(--color-foreground)', marginBottom:'8px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', letterSpacing:'-0.01em' }}>
+                              {item.title}
+                            </h4>
+                            <div style={{ display:'flex', alignItems:'center', gap:'6px', color:'var(--color-muted-foreground)', fontSize:'13px', marginBottom:'16px' }}>
+                              <MapPin size={13} style={{ color:'#D4A832', flexShrink:0 }} />
+                              <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.address}</span>
+                            </div>
+                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:'14px', borderTop:'1px solid rgba(240,244,255,0.07)' }}>
+                              <div style={{ display:'flex', alignItems:'center', gap:'6px', color:'var(--color-muted-foreground)', fontSize:'13px', fontWeight:600 }}>
+                                <Phone size={14} style={{ color:'#D4A832' }} />
+                                <span>{item.contact}</span>
+                              </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedBoarding(item); }}
+                                className="listing-card__view-btn"
+                                style={{ background:'rgba(212,168,50,0.10)', border:'1px solid rgba(212,168,50,0.20)', color:'#D4A832', padding:'7px 16px', borderRadius:'10px', fontSize:'12px', fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.25s' }}
+                              >
+                                <Eye size={13} /> View
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </section>
-            </div>
+              </div>
             </Home>
           </>
         )}
 
         {currentPage === 'my-listings' && (
-          <MyListings user={user} />
+          <div className="page-enter">
+            <MyListings user={user} />
+          </div>
         )}
 
         {currentPage === 'auth' && (
-          <Auth onLogin={(u) => { setUser(u); setCurrentPage('home'); }} />
+          <div className="page-enter">
+            <Auth onLogin={(u) => { setUser(u); setCurrentPage('home'); }} />
+          </div>
         )}
 
         {currentPage === 'reset-password' && (
-          <ResetPassword />
+          <div className="page-enter">
+            <ResetPassword />
+          </div>
         )}
 
         {currentPage === 'upload' && user && (
-          <Upload onUpload={handleUpload} />
+          <div className="page-enter">
+            <Upload onUpload={handleUpload} />
+          </div>
         )}
 
         {currentPage === 'admin' && (
-          <AdminDashboard user={user} />
+          <div className="page-enter">
+            <AdminDashboard user={user} />
+          </div>
         )}
       </main>
 
@@ -462,8 +734,10 @@ export default function App() {
         <BoardingDetailModal 
           boarding={selectedBoarding} 
           onClose={() => setSelectedBoarding(null)} 
+          user={user}
         />
       )}
     </div>
+    </NotificationProvider>
   );
 }

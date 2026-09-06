@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Search, MapPin, Building2, ShieldCheck, ChevronDown,
   Sparkles, ArrowRight, TrendingUp, Star, Users,
-  CheckCircle2, Zap, ArrowUpRight, Home as HomeIcon, Menu, X,
+  CheckCircle2, Zap, ArrowUpRight, Layers,
 } from 'lucide-react';
 import './Home.css';
 
@@ -19,39 +19,45 @@ const CITY_DATA = [
   { name:'Jaffna',  count:'60+',  img:'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=700&q=80' },
 ];
 
+const CATEGORIES = [
+  { key: 'boarding', label: 'Boarding',  icon: '🏠' },
+  { key: 'vehicle',  label: 'Vehicles',  icon: '🚗' },
+  { key: 'land',     label: 'Land',      icon: '🌿' },
+];
+
 const WHY_CARDS = [
   {
-    icon: <Building2 size={20}/>,
-    title: '1,000+ Verified Listings',
-    body: 'Every listing is hand-reviewed — real photos, honest prices, accurate details. No surprises on move-in day.',
-    cta: 'Browse listings',
+    icon: <Layers size={22}/>,
+    title: '3 Categories, One Platform',
+    body: 'Find boarding houses, vehicles for rent, and land plots all in one place — Sri Lanka\'s most complete property marketplace.',
+    cta: 'Explore listings',
   },
   {
-    icon: <MapPin size={20}/>,
-    title: 'Smart City Search',
-    body: 'Filter by city, budget, and amenities. Pinpoint exactly what you need in minutes, not hours.',
-    cta: 'Explore the map',
+    icon: <MapPin size={22}/>,
+    title: 'Interactive Map Search',
+    body: 'See every listing pinned on a live map. Switch between list and map views, zoom to a city, click any marker to preview instantly.',
+    cta: 'Open map view',
   },
   {
-    icon: <ShieldCheck size={20}/>,
-    title: 'Zero Fees, Zero Tricks',
-    body: 'No commission, no hidden charges. Contact owners directly — we just make the introduction.',
+    icon: <ShieldCheck size={22}/>,
+    title: 'Verified & Commission-Free',
+    body: 'No commission, no hidden charges. Every listing is reviewed by our team. Connect directly with owners — we just make the introduction.',
     cta: 'How it works',
   },
 ];
 
 const TRUST_ITEMS = [
-  { icon:<Star size={17}/>,         title:'4.9 / 5 Rating',   desc:'Across 2,400+ verified tenant reviews' },
-  { icon:<CheckCircle2 size={17}/>, title:'Verified Owners',  desc:'Every landlord is ID-checked before listing' },
-  { icon:<Zap size={17}/>,          title:'Instant Contact',   desc:'Connect with owners the same day' },
-  { icon:<Users size={17}/>,        title:'12,000+ Placed',   desc:'Students, expats & professionals trust us' },
+  { icon:<Star size={18}/>,         title:'4.9 / 5 Rating',   desc:'Across 2,400+ verified reviews from tenants & buyers' },
+  { icon:<CheckCircle2 size={18}/>, title:'Verified Owners',  desc:'Every landlord and seller is ID-checked before listing' },
+  { icon:<Zap size={18}/>,          title:'Instant Contact',   desc:'Reach owners directly via WhatsApp the same day' },
+  { icon:<Users size={18}/>,        title:'12,000+ Placed',   desc:'Students, expats & professionals trust our platform' },
 ];
 
 const PROP_CARDS = [
   {
     size: 'lg',
     img: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80',
-    badge: 'New',
+    badge: 'Boarding',
     fav: '♡',
     title: 'Modern Room · Colombo 7',
     city: 'Borella, Colombo',
@@ -61,18 +67,18 @@ const PROP_CARDS = [
   },
   {
     size: 'sm',
-    img: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80',
-    badge: 'Hot',
+    img: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=600&q=80',
+    badge: 'Vehicle',
     fav: '♡',
-    title: 'Cozy Studio · Kandy',
+    title: 'Toyota Vitz 2018 · Kandy',
     city: 'Peradeniya, Kandy',
-    price: 'LKR 18,500',
+    price: 'LKR 42,000',
     period: '/mo',
-    chips: ['WiFi', 'Parking'],
+    chips: ['A/C', 'Auto'],
   },
 ];
 
-const WORDS = ['Perfect', 'Ideal', 'Dream', 'Cozy'];
+const WORDS = ['Perfect', 'Ideal', 'Dream', 'Right'];
 
 /* ══════════════════════════════════════════════
    HOOKS
@@ -159,7 +165,7 @@ function WordRotator({ words }) {
     if (!containerRef.current) return;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    ctx.font = 'italic 700 clamp(38px,6vw,78px)/1 "Playfair Display",Georgia,serif';
+    ctx.font = 'italic 700 clamp(38px,5.5vw,76px)/1 "Cormorant Garamond",Georgia,serif';
     const maxW = Math.max(...words.map(w => ctx.measureText(w).width));
     setWidth(`${Math.ceil(maxW) + 6}px`);
   }, [words]);
@@ -208,11 +214,10 @@ function PropCard({ card }) {
 /* ══════════════════════════════════════════════
    MAIN
 ══════════════════════════════════════════════ */
-export default function Home({ setFilters, boardings = [], children }) {
+export default function Home({ setFilters, boardings = [], children, setCategoryFilter, categoryFilter }) {
   const [search, setSearch] = useState('');
   const [city, setCity]     = useState('');
   const [active, setActive] = useState('');
-  const [mobileMenu, setMobileMenu] = useState(false);
   const bgRef = useParallax();
   const rv    = useReveal();
 
@@ -232,7 +237,7 @@ export default function Home({ setFilters, boardings = [], children }) {
     setTimeout(() => {
       const el = document.getElementById('listings');
       if (el) {
-        const y = el.getBoundingClientRect().top + window.scrollY - 80; // 80px for header
+        const y = el.getBoundingClientRect().top + window.scrollY - 80;
         window.scrollTo({ top: y, behavior: 'smooth' });
       }
     }, 100);
@@ -257,6 +262,16 @@ export default function Home({ setFilters, boardings = [], children }) {
     scrollToListings();
   }, [search, setFilters]);
 
+  const pickCategory = useCallback((key) => {
+    if (setCategoryFilter) {
+      // Enable only selected category
+      const allOff = !categoryFilter?.boarding && !categoryFilter?.vehicle && !categoryFilter?.land;
+      // If clicking the only enabled one or all-off, enable only that one
+      setCategoryFilter({ boarding: key === 'boarding', vehicle: key === 'vehicle', land: key === 'land' });
+    }
+    scrollToListings();
+  }, [setCategoryFilter, categoryFilter]);
+
   return (
     <div className="hm">
 
@@ -268,47 +283,6 @@ export default function Home({ setFilters, boardings = [], children }) {
         <div className="hero-glow" />
         <div className="hero-glow2" />
 
-        {/* Nav */}
-        <nav className="hero-nav">
-          <a className="hero-logo" href="#">
-            <div className="hero-logo__icon"><HomeIcon size={16} color="#fff" /></div>
-            BoardingLK
-          </a>
-
-          {/* Desktop links */}
-          <div className="hero-nav-links">
-            <a href="#listings" className="hero-nav-link">Listings</a>
-            <a href="#how" className="hero-nav-cta" style={{ textDecoration: 'none' }}>How it works</a>
-          </div>
-        </nav>
-
-        {/* Mobile menu overlay */}
-        {mobileMenu && (
-          <div style={{
-            position:'fixed', inset:0, zIndex:200,
-            background:'rgba(10,20,60,0.96)', backdropFilter:'blur(16px)',
-            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:24,
-          }}>
-            <button
-              onClick={() => setMobileMenu(false)}
-              style={{ position:'absolute', top:24, right:24, background:'none', border:'none', color:'#fff', cursor:'pointer' }}
-            >
-              <X size={28} />
-            </button>
-            <a href="#listings"
-              style={{ color:'#fff', font:'600 20px/1 var(--fb)', textDecoration:'none' }}
-              onClick={() => setMobileMenu(false)}
-            >Listings</a>
-            <a
-              className="hero-nav-cta"
-              style={{ padding:'14px 32px', fontSize:15, textDecoration:'none', textAlign:'center' }}
-              href="#how"
-              onClick={() => setMobileMenu(false)}
-            >
-              How it works
-            </a>
-          </div>
-        )}
 
         {/* Split body */}
         <div className="hero-body">
@@ -317,18 +291,32 @@ export default function Home({ setFilters, boardings = [], children }) {
           <div className="hero-left">
             <div className="h-badge">
               <div className="h-badge__dot" />
-              Sri Lanka's #1 Boarding Finder
+              Sri Lanka's Trusted Property Marketplace
             </div>
 
             <h1 className="h-heading">
-              <span className="line1">Find Your <WordRotator words={WORDS} /></span>
-              <span className="line2">Home Away</span>
+              <span className="line1">Find the <WordRotator words={WORDS} /></span>
+              <span className="line2">Property for You</span>
             </h1>
 
             <p className="h-sub">
-              Discover quality boarding houses across Sri Lanka — verified listings,
-              real photos, direct owner contact. No middlemen, ever.
+              Boarding houses, vehicles &amp; land plots across Sri Lanka — verified listings,
+              real photos, direct owner contact. Zero fees, always.
             </p>
+
+            {/* Category quick-access */}
+            <div className="h-categories">
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat.key}
+                  className={`h-cat-btn`}
+                  onClick={() => pickCategory(cat.key)}
+                >
+                  <span className="cat-ico">{cat.icon}</span>
+                  {cat.label}
+                </button>
+              ))}
+            </div>
 
             <div className="h-search-wrap">
               <form className="h-search" onSubmit={doSearch}>
@@ -336,7 +324,7 @@ export default function Home({ setFilters, boardings = [], children }) {
                   <div className="h-field" style={{ flex:'1.4' }}>
                     <Search size={16} className="h-field__ico" strokeWidth={2.2} />
                     <input
-                      type="text" placeholder="Room type, area, wifi…"
+                      type="text" placeholder="Search boarding, vehicle, land…"
                       value={search} onChange={e => setSearch(e.target.value)}
                     />
                   </div>
@@ -347,7 +335,7 @@ export default function Home({ setFilters, boardings = [], children }) {
                       <option value="">Any city</option>
                       {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    <ChevronDown size={13} color="var(--ink-25)" style={{ flexShrink:0 }} />
+                    <ChevronDown size={13} color="rgba(10,20,40,0.35)" style={{ flexShrink:0 }} />
                   </div>
                   <button type="submit" className="h-btn">
                     <Search size={14} strokeWidth={2.5} /> Search
@@ -399,17 +387,17 @@ export default function Home({ setFilters, boardings = [], children }) {
       {/* ══ STATS ══ */}
       <div className="stats-strip rv" ref={rv}>
         <StatCounter target={1200} suffix="+" label="Active Listings"   delay="0s"   />
-        <StatCounter target={14}   suffix=""  label="Cities Covered"    delay=".08s" />
-        <StatCounter target={98}   suffix="%" label="Tenants Satisfied" delay=".16s" />
+        <StatCounter target={3}    suffix=""  label="Categories"         delay=".08s" />
+        <StatCounter target={14}   suffix=""  label="Cities Covered"     delay=".16s" />
       </div>
 
       {/* ══ WHY ══ */}
       <section className="why">
         <div className="wrap">
           <div className="sh rv" ref={rv}>
-            <div className="sh__tag"><Sparkles size={10} /> Why BoardingLK</div>
-            <h2 className="sh__title">Everything You Need,<br /><em>Nothing You Don't</em></h2>
-            <p className="sh__body">We cut through the noise so you can find the right room fast — then get on with life.</p>
+            <div className="sh__tag"><Sparkles size={10} /> Why FindLK</div>
+            <h2 className="sh__title">Everything in <em>One Place</em></h2>
+            <p className="sh__body">We bring boardings, vehicles, and land plots together so you can find exactly what you need — fast and hassle-free.</p>
           </div>
           <div className="why-grid">
             {WHY_CARDS.map((c, i) => (
@@ -434,7 +422,7 @@ export default function Home({ setFilters, boardings = [], children }) {
           <div className="sh rv" ref={rv}>
             <div className="sh__tag"><MapPin size={10} /> Popular Destinations</div>
             <h2 className="sh__title">Browse by <em>City</em></h2>
-            <p className="sh__body">From bustling Colombo to historic Galle — your next home is waiting.</p>
+            <p className="sh__body">From bustling Colombo to historic Galle — find the property that fits your life.</p>
           </div>
           <div className="bento">
             {dynamicCityData.map((c, i) => (
@@ -444,14 +432,14 @@ export default function Home({ setFilters, boardings = [], children }) {
                 onClick={() => pickBento(c.name)}
                 role="button" tabIndex={0}
                 onKeyDown={e => e.key==='Enter' && pickBento(c.name)}
-                aria-label={`Browse boardings in ${c.name}`}
+                aria-label={`Browse listings in ${c.name}`}
               >
                 <img className="bento-img" src={c.img} alt={c.name} loading="lazy" />
                 <div className="bento-grad" />
                 <span className="bento-tag">Explore</span>
                 <div className="bento-info">
                   <span className="bento-city">{c.name}</span>
-                  <span className="bento-count">{c.count} boardings</span>
+                  <span className="bento-count">{c.count} listings</span>
                 </div>
                 <div className="bento-arrow"><ArrowUpRight size={14} /></div>
               </div>
@@ -479,31 +467,31 @@ export default function Home({ setFilters, boardings = [], children }) {
       </section>
 
       {/* ══ HOW IT WORKS ══ */}
-      <section className="why" id="how" style={{ paddingTop: '80px', borderTop: '1px solid var(--ink-05)' }}>
+      <section className="why" id="how" style={{ paddingTop: '88px', borderTop: '1px solid var(--border)' }}>
         <div className="wrap">
           <div className="sh rv" ref={rv}>
             <div className="sh__tag"><Sparkles size={10} /> Simple Steps</div>
-            <h2 className="sh__title">How to <em>Post a Boarding</em></h2>
-            <p className="sh__body">Ready to rent out your space? Follow these three simple steps to publish your boarding house listing.</p>
+            <h2 className="sh__title">How to <em>List Your Property</em></h2>
+            <p className="sh__body">Ready to reach thousands of buyers and renters? Follow three simple steps to publish any listing.</p>
           </div>
-          <div className="why-grid" style={{ marginTop: '40px' }}>
+          <div className="why-grid" style={{ marginTop: '44px' }}>
             <div className="why-card rv" ref={rv} style={{ transitionDelay: '0s' }}>
               <span className="why-card__num">01</span>
-              <div className="why-ico" style={{ background: 'var(--blue-lt)', color: 'var(--blue-mid)' }}><Users size={20} /></div>
+              <div className="why-ico"><Users size={22} /></div>
               <h3>Create an Account</h3>
-              <p>Sign up or log in to your account. It takes under a minute and ensures your listing details and contacts are secure.</p>
+              <p>Sign up or log in — takes under a minute. Your listing details and contacts are kept safe and private.</p>
             </div>
             <div className="why-card rv" ref={rv} style={{ transitionDelay: '0.12s' }}>
               <span className="why-card__num">02</span>
-              <div className="why-ico" style={{ background: 'var(--sky-lt)', color: '#0EA5E9' }}><Building2 size={20} /></div>
-              <h3>Fill Boarding Details</h3>
-              <p>Click "Upload Boarding" on the top navigation bar. Fill in title, rent price, select location on the map, and upload images.</p>
+              <div className="why-ico"><Building2 size={22} /></div>
+              <h3>Choose a Category</h3>
+              <p>Click "Upload" on the top bar and choose whether you're listing a Boarding, Vehicle, or Land. Fill in the details and pick your location on the map.</p>
             </div>
             <div className="why-card rv" ref={rv} style={{ transitionDelay: '0.24s' }}>
               <span className="why-card__num">03</span>
-              <div className="why-ico" style={{ background: 'var(--indigo-lt)', color: 'var(--indigo)' }}><CheckCircle2 size={20} /></div>
-              <h3>Review & Go Live</h3>
-              <p>Our admin team reviews listings for authenticity. Once approved, your boarding goes live immediately for searchers to find.</p>
+              <div className="why-ico"><CheckCircle2 size={22} /></div>
+              <h3>Review &amp; Go Live</h3>
+              <p>Our admin team reviews listings for authenticity. Once approved, your listing goes live immediately for buyers and renters to find.</p>
             </div>
           </div>
         </div>
@@ -514,9 +502,9 @@ export default function Home({ setFilters, boardings = [], children }) {
         <div className="wrap">
           <div className="feat-inner rv" ref={rv}>
             <div className="feat-left">
-              <p className="feat-eyebrow">🏠 Featured This Week</p>
-              <h3>New Listings<br />Added Daily</h3>
-              <p>Fresh, verified boardings are added every day across all major cities. Be the first to find them.</p>
+              <p className="feat-eyebrow">✨ Updated Daily</p>
+              <h3>New Listings<br />Added Every Day</h3>
+              <p>Fresh, verified boardings, vehicles, and land plots are added daily across all major cities. Be the first to find them.</p>
             </div>
             <div className="feat-divider" />
             <div className="feat-stats">
@@ -542,11 +530,11 @@ export default function Home({ setFilters, boardings = [], children }) {
             <div className="cta-ring" />
             <div className="cta-ring2" />
             <div className="cta-inner">
-              <span className="cta-tag">🏠 For Landlords</span>
-              <h2 className="cta-h2">Own a Boarding?<br /><em>List It Free Today.</em></h2>
-              <p className="cta-p">Reach thousands of students and professionals actively searching right now. Takes less than 5 minutes to go live.</p>
+              <span className="cta-tag">🏠 For Owners &amp; Sellers</span>
+              <h2 className="cta-h2">Have a Property?<br /><em>List It Free Today.</em></h2>
+              <p className="cta-p">Reach thousands of buyers and renters actively searching right now. Boarding, vehicle, or land — goes live in under 5 minutes.</p>
               <div className="cta-btns">
-                <a href="#upload" className="cta-primary">Post Your Boarding <ArrowRight size={15} /></a>
+                <a href="#upload" className="cta-primary">Post Your Listing <ArrowRight size={15} /></a>
                 <a href="#how"    className="cta-secondary"><TrendingUp size={14} /> How it works</a>
               </div>
             </div>

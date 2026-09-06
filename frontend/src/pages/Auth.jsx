@@ -517,7 +517,7 @@ export default function Auth({ onLogin }) {
 
           {/* Logo */}
           <div className="logo-mark">
-            <img src="/logo.png" alt="Bodim Logo" />
+            <img src="/logo.png" alt="FindLK Logo" />
           </div>
 
           {twoFAState ? (

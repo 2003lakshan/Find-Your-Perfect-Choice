@@ -87,6 +87,97 @@ export async function initDB() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS vehicles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      address TEXT NOT NULL,
+      city TEXT NOT NULL,
+      price REAL NOT NULL,
+      contact TEXT NOT NULL,
+      latitude REAL,
+      longitude REAL,
+      gender TEXT DEFAULT 'any',
+      status TEXT DEFAULT 'pending',
+      payment_receipt TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS vehicle_images (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      vehicle_id INTEGER NOT NULL,
+      filename TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Add vehicle_type and brand columns for existing databases
+  try { db.run(`ALTER TABLE vehicles ADD COLUMN vehicle_type TEXT`); } catch(e) {}
+  try { db.run(`ALTER TABLE vehicles ADD COLUMN brand TEXT`); } catch(e) {}
+
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS lands (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      address TEXT NOT NULL,
+      city TEXT NOT NULL,
+      price REAL NOT NULL,
+      contact TEXT NOT NULL,
+      latitude REAL,
+      longitude REAL,
+      gender TEXT DEFAULT 'any',
+      status TEXT DEFAULT 'pending',
+      payment_receipt TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS land_images (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      land_id INTEGER NOT NULL,
+      filename TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (land_id) REFERENCES lands(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      message TEXT NOT NULL,
+      type TEXT NOT NULL,
+      is_read BOOLEAN DEFAULT 0,
+      link TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS reviews (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      listing_id INTEGER NOT NULL,
+      listing_type TEXT NOT NULL,
+      user_id INTEGER NOT NULL,
+      rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+      comment TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   // Ensure default admin exists
   const adminEmail = 'rathnayakenaveenlakshan@gmail.com';
   const existingAdmin = db.exec('SELECT id FROM users WHERE email = ?', [adminEmail]);

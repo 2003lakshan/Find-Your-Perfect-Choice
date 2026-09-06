@@ -8,7 +8,11 @@ import fs from "fs";
 import { initDB } from "./db.js";
 import authRoutes from "./routes/auth.js";
 import boardingRoutes from "./routes/boardings.js";
+import vehicleRoutes from "./routes/vehicles.js";
+import landRoutes from "./routes/lands.js";
 import userRoutes from "./routes/users.js";
+import notificationRoutes from "./routes/notifications.js";
+import reviewsRoutes from "./routes/reviews.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -54,7 +58,16 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/boardings", boardingRoutes);
+app.use("/api/vehicles", vehicleRoutes);
+app.use("/api/lands", landRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/reviews", reviewsRoutes);
+
+app.use((err, req, res, next) => {
+  console.error("Express Global Error:", err);
+  res.status(500).json({ error: err.message || 'Internal Server Error' });
+});
 
 initDB()
   .then(() => {

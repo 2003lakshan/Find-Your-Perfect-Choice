@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, User, LogIn, Compass, Shield, LogOut, List, Menu, X, Sun, Moon, Sparkles, ChevronRight } from 'lucide-react';
+import { PlusCircle, User, LogIn, Compass, Shield, LogOut, List, Menu, X, Sun, Moon, Sparkles, ChevronRight, Bell } from 'lucide-react';
+import { useNotifications } from '../context/NotificationContext';
 
 export default function Header({ currentPage, setCurrentPage, user, setUser, theme, setTheme }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notificationsCtx = useNotifications();
+  const notifications = notificationsCtx?.notifications || [];
+  const unreadCount = notificationsCtx?.unreadCount || 0;
+  const markAsRead = notificationsCtx?.markAsRead || (() => {});
+  const markAllAsRead = notificationsCtx?.markAllAsRead || (() => {});
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -476,6 +483,97 @@ export default function Header({ currentPage, setCurrentPage, user, setUser, the
           background: rgba(248, 113, 113, 0.15);
         }
 
+        /* ── Notifications ── */
+        .notif-btn {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.06);
+          color: rgba(255, 255, 255, 0.7);
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        .notif-btn:hover {
+          background: rgba(255, 255, 255, 0.12);
+          color: #fff;
+        }
+        .notif-badge {
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          background: #ef4444;
+          color: white;
+          font-size: 10px;
+          font-weight: bold;
+          min-width: 18px;
+          height: 18px;
+          border-radius: 9px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 4px;
+          border: 2px solid #0f2d6b;
+        }
+        .notif-dropdown {
+          position: absolute;
+          top: 50px;
+          right: 0;
+          width: 320px;
+          max-height: 400px;
+          background: rgba(15, 23, 42, 0.95);
+          backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 16px;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          z-index: 100;
+          animation: dropIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes dropIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .notif-header {
+          padding: 12px 16px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .notif-header h4 { margin: 0; font-size: 0.95rem; color: #fff; }
+        .notif-mark-all { font-size: 0.75rem; color: #a5b4fc; background: none; border: none; cursor: pointer; }
+        .notif-mark-all:hover { color: #fff; text-decoration: underline; }
+        .notif-list {
+          overflow-y: auto;
+          flex: 1;
+        }
+        .notif-item {
+          padding: 12px 16px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          display: flex;
+          gap: 12px;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .notif-item:hover { background: rgba(255, 255, 255, 0.05); }
+        .notif-item.unread { background: rgba(99, 102, 241, 0.1); }
+        .notif-item-text {
+          font-size: 0.85rem;
+          color: #e2e8f0;
+          margin-bottom: 4px;
+        }
+        .notif-item-time {
+          font-size: 0.7rem;
+          color: rgba(148, 163, 184, 0.8);
+        }
+
         /* ── Ambient glow on header ── */
         .hdr-glow {
           position: absolute;
@@ -495,8 +593,8 @@ export default function Header({ currentPage, setCurrentPage, user, setUser, the
 
           {/* ── Logo ── */}
           <div className="hdr-logo" onClick={() => setCurrentPage('home')}>
-            <img src="/logo.png" alt="Bodim" className="logo-img" />
-            <span className="logo-text">Bodim</span>
+            <img src="/logo.png" alt="FindLK" className="logo-img" />
+            <span className="logo-text">FindLK</span>
           </div>
 
           {/* ── Desktop Navigation ── */}
@@ -516,6 +614,53 @@ export default function Header({ currentPage, setCurrentPage, user, setUser, the
 
           {/* ── Right Actions ── */}
           <div className="hdr-actions">
+            {user && (
+              <div style={{ position: 'relative' }}>
+                <button 
+                  className="notif-btn" 
+                  onClick={() => setNotifOpen(!notifOpen)}
+                  title="Notifications"
+                >
+                  <Bell size={18} />
+                  {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
+                </button>
+                {notifOpen && (
+                  <div className="notif-dropdown">
+                    <div className="notif-header">
+                      <h4>Notifications</h4>
+                      {unreadCount > 0 && (
+                        <button className="notif-mark-all" onClick={() => markAllAsRead()}>Mark all as read</button>
+                      )}
+                    </div>
+                    <div className="notif-list">
+                      {notifications.length === 0 ? (
+                        <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
+                          No notifications yet.
+                        </div>
+                      ) : (
+                        notifications.map(n => (
+                          <div 
+                            key={n.id} 
+                            className={`notif-item ${!n.is_read ? 'unread' : ''}`}
+                            onClick={() => {
+                              if (!n.is_read) markAsRead(n.id);
+                              setNotifOpen(false);
+                            }}
+                          >
+                            <div style={{ flex: 1 }}>
+                              <div className="notif-item-text">{n.message}</div>
+                              <div className="notif-item-time">{new Date(n.created_at).toLocaleString()}</div>
+                            </div>
+                            {!n.is_read && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', marginTop: 4 }} />}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="theme-btn"
